@@ -5,6 +5,21 @@ import html
 import os
 from tqdm import tqdm
 import logging
+import os, html, urllib
+from tqdm import tqdm
+import urllib.request, http.cookiejar
+import re
+import ssl
+import requests
+
+ssl._create_default_https_context = ssl._create_unverified_context
+
+user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
+headers = {'User-Agent': user_agent, 'Connection': 'keep-alive'}
+cookie = http.cookiejar.MozillaCookieJar()
+handler = urllib.request.HTTPCookieProcessor(cookie)
+opener = urllib.request.build_opener(handler)
+urllib.request.install_opener(opener)
 
 logging.basicConfig(filename="dowload.log",
                     filemode='a')
@@ -17,10 +32,61 @@ global_name_to_repos = {}
 global_download_base = ""
 
 
+def open_page(uri, values={}):
+    global headers
+    post_data = urllib.parse.urlencode(values).encode() if values else None
+    request = urllib.request.Request(uri, post_data, headers)
+    try:
+        response = opener.open(request)
+        return response
+    except urllib.error.URLError as e:
+        print(uri, e.code, ':', e.reason)
+
+
+def get_page(uri, values={}):
+    data = open_page(uri, values)
+    if data:
+        return data.read().decode()
+
+
+def login(username, password, progress=gr.Progress(track_tqdm=True)):
+    global global_repos, cookie
+    login_uri = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/post/167ed2c25d7f176c20c79e341e2ccdf0/0?/login.do'
+    values = {'i_user': username, 'i_pass': password, 'atOnce': 'true'}
+    info = get_page(login_uri, values)
+    
+    ticket = re.findall('ticket=(.+?)"', info)
+    successful = len(ticket) > 0
+    if successful:
+        logger.info(f"{username} login successs")
+        open_page(f"https://cloud.tsinghua.edu.cn/tsinghua-auth/callback/?ticket={ticket[0]}")
+        response = requests.get("https://cloud.tsinghua.edu.cn/api/v2.1/repos/?type=mine", cookies=cookie)
+        dic = response.json()
+        global_repos = dic["repos"]
+        
+        # get file list for every repo
+        for i, repo in progress.tqdm(zip(range(len(global_repos)), global_repos)):
+            response = requests.get(f'https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo["repo_id"]}/', cookies=cookie)
+            js = response.json()
+            global_repos[i]["total_size"] = js["size"] / (1024*1024)
+            global_repos[i]["file_count"] = js["file_count"]
+            global_name_to_repos[repo["repo_name"]] = global_repos[i]
+            
+        select_string = ""
+        for i in global_repos:
+            select_string += f'{i["repo_name"]}\n'
+        
+        gr.update()
+        return ("登录成功", 
+                [ [ i["repo_name"], i["file_count"], f'{i["total_size"]:.2f}MB'] for i in global_repos], 
+                select_string)
+    else:
+        return "登录失败", [], ""
+
 
 def download_file(url, filename):
     global sessionid
-    response = requests.get(url, stream=True, cookies={"sessionid":sessionid})
+    response = requests.get(url, stream=True, cookies=cookie)
     total = int(response.headers.get('content-length', 0))
     
     with open(filename, "wb") as f, tqdm(desc=f"downloading {filename}", total=total, unit="iB", unit_scale=True, unit_divisor=1024) as bar:
@@ -33,71 +99,34 @@ def download_file(url, filename):
 def get_dir_list(repo_id, relative_path):
     global sessionid
     relative_path = relative_path.replace("/", "%2F")
-    response = requests.get(f"https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo_id}/dir/?p={relative_path}&with_thumbnail=true",  cookies={"sessionid":sessionid}).json()
+    response = requests.get(f"https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo_id}/dir/?p={relative_path}&with_thumbnail=true",  cookies=cookie).json()
     return response.get("dirent_list", None)
     
     
     
-    
-    
-def test_sessionid(input_sessionid, progress=gr.Progress(track_tqdm=True)):
-    # test_sessionid and set list
-    global sessionid
-    sessionid = input_sessionid
-    response = requests.get("https://cloud.tsinghua.edu.cn/api/v2.1/repos/?type=mine", cookies={
-        "sessionid":sessionid
-    })
-    dic = response.json()
-    if response.status_code != 200:
-        return "非法sesionid", [], ""
-    elif dic.get("repos", None) is None:
-        return "获取仓库列表错误", [], ""
-    else:
-        global global_repos
-        global_repos = dic["repos"]
-        gr.update()
-        
-        # get file list for every repo
-        for i, repo in progress.tqdm(zip(range(len(global_repos)), global_repos)):
-            response = requests.get(f'https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo["repo_id"]}/', cookies={"sessionid":sessionid})
-            js = response.json()
-            global_repos[i]["total_size"] = js["size"] / (1024*1024)
-            global_repos[i]["file_count"] = js["file_count"]
-            global_name_to_repos[repo["repo_name"]] = global_repos[i]
-            
-        select_string = ""
-        for i in global_repos:
-            select_string += f'{i["repo_name"]}\n'
-        
-        return ("sessionid检验成功", 
-                [ [ i["repo_name"], i["file_count"], f'{i["total_size"]:.2f}MB'] for i in global_repos], 
-                select_string
-                )
 
 
 
 with gr.Blocks() as demo:
+    output = gr.Label(label="Output Box")
     with gr.Row():
-        with gr.Column():
-            sessionid = gr.Textbox(label="sessionid", placeholder="输入请求中的sessionid, 以此为应用提供访问权限")
-            output = gr.Label(label="Output Box")
-            greet_btn = gr.Button("测试token")
-
-
         with gr.Column():
             path = gr.Textbox(label="下载路径", placeholder="提供下载路径")
             dowload_btn = gr.Button("下载全部")
-
             
-    
+        with gr.Column():
+            username = gr.Textbox(label="username", placeholder="输入用户名")
+            password = gr.Textbox(label="password", placeholder="输入密码", type="password")
+            login_btn = gr.Button("登录")
+            
     
     with gr.Tabs(elem_id="repo_list") as tabs:
         with gr.TabItem("repos"):
-            headers = ["仓库名称", "文件数量", "总大小"]
-            ls = gr.List(col_count=len(headers), headers=headers)
+            table_headers = ["仓库名称", "文件数量", "总大小"]
+            ls = gr.List(col_count=len(table_headers), headers=table_headers)
             select_string = gr.Textbox("每行选择一个仓库进行下载")
             subset_down_load_btn = gr.Button("选择下载")
-            greet_btn.click(fn=test_sessionid, inputs=[sessionid], outputs=[output, ls, select_string], api_name="test")
+            login_btn.click(fn=login, inputs=[username, password], outputs=[output, ls, select_string])
             
             
             def dowload_dir(repo_name, relative_dir_path):
