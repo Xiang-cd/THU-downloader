@@ -17,7 +17,7 @@ fi
 if [[ ! -d "${venv_dir}" ]]
 then
     "${python_cmd}" -m venv "${venv_dir}"
-    "${python_cmd}" -m pip install gradio==3.35.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
+    "${python_cmd}" -m pip install gradio==3.35.2 grequests -i https://pypi.tuna.tsinghua.edu.cn/simple
 fi
     # shellcheck source=/dev/null
 if [[ -f "${venv_dir}"/bin/activate ]]
