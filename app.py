@@ -1,20 +1,17 @@
+import gevent.monkey
+gevent.monkey.patch_all(ssl=False, subprocess=False, thread=False, time=False)
+
 import gradio as gr
-from tqdm import tqdm
+import requests
 import logging
-import os, html, urllib
-import urllib.request, http.cookiejar
 import re
-import ssl
 import shared
 import utils
 
-ssl._create_default_https_context = ssl._create_unverified_context
 
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
 headers = {'User-Agent': user_agent, 'Connection': 'keep-alive'}
-handler = urllib.request.HTTPCookieProcessor(shared.cookie)
-opener = urllib.request.build_opener(handler)
-urllib.request.install_opener(opener)
+
 
 if not hasattr(shared, 'GradioTemplateResponseOriginal'):
     shared.GradioTemplateResponseOriginal = gr.routes.templates.TemplateResponse
@@ -27,35 +24,19 @@ logger.setLevel("INFO")
 
 
 
-def open_page(uri, values={}):
-    global headers
-    post_data = urllib.parse.urlencode(values).encode() if values else None
-    request = urllib.request.Request(uri, post_data, headers)
-    try:
-        response = opener.open(request)
-        return response
-    except urllib.error.URLError as e:
-        print(uri, e.code, ':', e.reason)
-
-
-def get_page(uri, values={}):
-    data = open_page(uri, values)
-    if data:
-        return data.read().decode()
-
-
 def login(username, password, progress=gr.Progress(track_tqdm=True)):
-    global global_repos, cookie
+    global global_repos
+    s = requests.Session()
     login_uri = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/post/167ed2c25d7f176c20c79e341e2ccdf0/0?/login.do'
     values = {'i_user': username, 'i_pass': password, 'atOnce': 'true'}
-    info = get_page(login_uri, values)
+    info = s.post(login_uri, data=values).text
     
     ticket = re.findall('ticket=(.+?)"', info)
     successful = len(ticket) > 0
     if successful:
         logger.info(f"{username} login successs")
-        open_page(f"https://cloud.tsinghua.edu.cn/tsinghua-auth/callback/?ticket={ticket[0]}")
-        gr.update()
+        res = s.get(f"https://cloud.tsinghua.edu.cn/tsinghua-auth/callback/?ticket={ticket[0]}")
+        shared.cookie = s.cookies
         return "登录成功"
     else:
         return "登录失败"

@@ -56,7 +56,7 @@ def get_select_table(headers: List[AnyStr], data: List[List], table_mark:AnyStr,
         td_code = f"""<tr>
                     <td>
                         <label class="container">
-                        <input name="select_{index}" type="checkbox" checked="{"checked" if index in selected_index else ''}">
+                        <input name="select_{index}" type="checkbox" {"checked" if index in selected_index else ''}>
                         <span class="checkmark"></span>
                         </label>
                     </td>"""

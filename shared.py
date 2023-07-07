@@ -1,10 +1,10 @@
-import http.cookiejar
+from requests.cookies import RequestsCookieJar
 import gradio as gr
 import os
 
 
 
-cookie = http.cookiejar.MozillaCookieJar()
+cookie = RequestsCookieJar()
 
 
 
