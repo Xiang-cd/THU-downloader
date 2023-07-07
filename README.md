@@ -7,10 +7,11 @@
 TODO:
 
 - [ ] windows bat脚本
-- [ ] ~~如何获取sessionid~~
 - [x] 写个登录界面
 - [ ] 更细粒度选择
 - [ ] 更高并发
+- [ ] 支持链接下载
+- [ ] 更多应用集成...
 
 使用问题可以联系作者微信`xxyaw-`。
 
@@ -32,17 +33,16 @@ gradio app.py
 
 
 
-随后点击生成的链接`http://127.0.0.1:7861`。
+随后点击生成的链接。
 
 ```shell
 Launching in *reload mode* on: http://127.0.0.1:7860 (Press CTRL+C to quit)
 
-Watching: '/opt/homebrew/lib/python3.10/site-packages/gradio', '/Users/xxy/Github/icloud-crawl'
 
 Running on local URL:  http://127.0.0.1:7861
 
 To create a public link, set `share=True` in `launch()`.
 ```
 
-输入用户名和密码, 点击登录, 输入目标的下载路径, 点击全部下载就能将所有的仓库按照原结构下载到目标路径, 如果只希望下载部分仓库, 则在下放的文本中删除不需要的仓库名字, 点击`选择下载`, 则仍然在文本框内的仓库会被下载。
+输入用户名和密码, 点击登录, 切换tab, 输入目标的下载路径, 点击全部下载就能将所有的仓库按照原结构下载到目标路径, 如果只希望下载部分仓库, 则进行勾选后, 点击`选择下载`。
 
