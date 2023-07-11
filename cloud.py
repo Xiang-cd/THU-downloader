@@ -11,11 +11,8 @@ import shared
 import utils
 import functools
 import asyncio
-import aiohttp
 import aiofiles
 from aiohttp import ClientSession
-import nest_asyncio
-nest_asyncio.apply()
 
 logging.basicConfig(filename="dowload.log",
                     filemode='a')
@@ -44,19 +41,29 @@ def get_repos(progress=gr.Progress(track_tqdm=True)):
     
     global_repos = dic["repos"]
     
+
+    async def get_single_info(url, session, index):
+        async with session.get(url) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data, index
+            else:
+                logger.error(f"fail for {url}")
+                return None, index
     
     async def get_repos_info():
-        data_ls = []
+        tasks = []
         async with ClientSession(cookies=shared.cookie) as session:
             for index, repo in enumerate(global_repos):
-                async with session.get(f'https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo["repo_id"]}/') as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        data_ls.append((data, index))
-                    else:
-                        print(f"fail for {repo}")
-        
-        return data_ls
+                task = asyncio.ensure_future(
+                                get_single_info(
+                                    f'https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo["repo_id"]}/', 
+                                    session, 
+                                    index)
+                                )
+                tasks.append(task)
+            res = await asyncio.gather(*tasks)
+        return res
 
     try:
         loop = asyncio.get_event_loop()
@@ -142,11 +149,7 @@ def download_repo(name, path, progress=gr.Progress()):
         elif content["type"] == "dir":
             dowload_dir(name, f'{content["name"]}')
             
-            
-
-
 async def adownload_file(url, filename, session):
-    print(filename)
     async with session.get(url) as resp:
         if resp.status == 200:
             f = await aiofiles.open(filename, mode='wb')
@@ -170,17 +173,19 @@ async def adowload_dir(repo_name, relative_dir_path, session):
     logger.info(f"making dir cur os dir {cur_os_dir}")
     os.makedirs(cur_os_dir, exist_ok=True)
     
-    
+    tasks = []
     for content in tqdm(contents, desc="dir progress"):
         p_dir = content["parent_dir"][1:] if content["parent_dir"].startswith("/") else content["parent_dir"]
         content_relative_path = os.path.join(p_dir, content["name"])
         if content["type"] == "file":
             file_path = os.path.join(cur_os_dir, content["name"])
             logger.info(f"dowloading {file_path}")
-            await adownload_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content_relative_path}?dl=1', file_path, session=session)
-
+            task = asyncio.ensure_future(adownload_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content_relative_path}?dl=1', file_path, session=session))
+            tasks.append(task)
         elif content["type"] == "dir":
             await adowload_dir(repo_name, content_relative_path, session=session)
+    
+    await asyncio.gather(*tasks)
 
 
 async def adownload_repo(name, path, progress=gr.Progress()):
@@ -194,14 +199,18 @@ async def adownload_repo(name, path, progress=gr.Progress()):
         logger.info(f"making dir {repo_dir}")
         os.makedirs(repo_dir, exist_ok=True)
         
+        tasks = []
         for content in progress.tqdm(contents, desc="inner repo progress"):
             if content["type"] == "file":
                 file_path = os.path.join(repo_dir, content["name"])
                 logger.info(f"dowloading {file_path}")
-                await adownload_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content["name"]}?dl=1', file_path, session=session)
+                task = asyncio.ensure_future(adownload_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content["name"]}?dl=1', file_path, session=session))
+                tasks.append(task)
 
             elif content["type"] == "dir":
                 await adowload_dir(name, f'{content["name"]}', session=session)
+        
+        await asyncio.gather(*tasks)
 
 
 def download_subset(selected_index, path, progress=gr.Progress()):
@@ -222,9 +231,7 @@ def download_subset(selected_index, path, progress=gr.Progress()):
                     loop = asyncio.get_event_loop()
                 except:
                     loop = asyncio.new_event_loop()
-                st = time.time()
                 loop.run_until_complete(adownload_repo(repo, path, progress))
-                ed = time.time()
                 loop.close()
             else:
                 download_repo(repo, path, progress)
@@ -264,7 +271,6 @@ def get_cloud_tab():
         select_table = gr.HTML()
         subset_down_load_btn = gr.Button("选择下载")
         
-        selected_list = gr.Text(elem_id="extensions_disabled_list", visible=False)
         cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
 
         select_all.click(fn=functools.partial(select_all_click, True),
@@ -273,6 +279,8 @@ def get_cloud_tab():
         unselect_all.click(fn=functools.partial(select_all_click, False),
                            inputs=[],
                            outputs=[select_table])
+        
+        selected_list = gr.Text(elem_id="extensions_disabled_list", visible=False)
         subset_down_load_btn.click(fn=download_subset, 
                                    inputs=[selected_list, path], 
                                    outputs=[cloud_info],
