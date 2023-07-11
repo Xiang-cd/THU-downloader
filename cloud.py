@@ -272,7 +272,6 @@ def get_cloud_tab():
         select_table = gr.HTML()
         subset_down_load_btn = gr.Button("选择下载")
         
-        selected_list = gr.Text(elem_id="extensions_disabled_list", visible=False)
         cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
 
         select_all.click(fn=functools.partial(select_all_click, True),
@@ -281,6 +280,8 @@ def get_cloud_tab():
         unselect_all.click(fn=functools.partial(select_all_click, False),
                            inputs=[],
                            outputs=[select_table])
+        
+        selected_list = gr.Text(elem_id="extensions_disabled_list", visible=False)
         subset_down_load_btn.click(fn=download_subset, 
                                    inputs=[selected_list, path], 
                                    outputs=[cloud_info],

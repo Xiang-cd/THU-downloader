@@ -55,5 +55,8 @@ with gr.Blocks() as demo:
         from cloud import get_cloud_tab
         get_cloud_tab()
 
+        from link_download import get_link_download_tab
+        get_link_download_tab()
+
     
 demo.queue().launch()
