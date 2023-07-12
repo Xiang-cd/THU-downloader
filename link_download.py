@@ -4,10 +4,22 @@ import re
 from urllib.parse import quote
 import requests
 import utils
+import os
+import json
+import time
+import logging
+
+logging.basicConfig(filename="dowload.log",
+                    filemode='a')
+logger = logging.getLogger(__file__)
+logger.setLevel("INFO")
 
 download_url = 'https://cloud.tsinghua.edu.cn/d/{}/files/?p={}&dl=1'
 dirent_url = 'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{}/dirents/?path={}'
 content_list = []
+share_key = ""
+
+use_coroutine = True
 
 def get_share_key(share_link):
     key = re.findall(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)", share_link)
@@ -18,6 +30,7 @@ def get_share_key(share_link):
 
 def parse_btn_click(share_link):
     code = ""
+    global share_key
     share_key = get_share_key(share_link)
     if share_key is None:
         return "分享链接格式错误", code
@@ -50,22 +63,68 @@ def parse_btn_click(share_link):
     return "解析成功", code
 
 
-def download_btn_click(link_content, save_path):
+
+def downlaod_file(d, save_path):
+    global share_key
+    file_path = os.path.join(save_path, d["file_name"])
+    logger.info("downloading", file_path)
+    url = download_url.format(share_key, quote(d["file_path"]))
+    r = requests.get(url, stream=True)
+    
+    # total = int(r.headers.get('content-length', 0))
+    with open(file_path, "wb") as f:
+        for data in r.iter_content(chunk_size=1024*20):
+            f.write(data)
+                
+
+def downlaod_dir(d, save_path):
+    cur_dir_path = os.path.join(save_path, d["folder_name"])
+    logger.debug(f"创建文件夹：{cur_dir_path}")
+    os.makedirs(cur_dir_path, exist_ok=True)
+
+    r = requests.get(dirent_url.format(share_key, quote(d["folder_path"])))
+
+
+    if r.status_code != 200:
+        if r.status_code == 404:
+            logger.error(f"{d}, 404")
+        if r.status_code == 500:
+            logger.error(f"{d} 500")
+        return
+
+    if r.status_code == 200:
+        content_list = r.json()["dirent_list"]
+        for d in content_list:
+            if d["is_dir"]:
+                downlaod_dir(d, cur_dir_path)
+            else:
+                downlaod_file(d, cur_dir_path)
+
+
+def download_btn_click(selected_index, save_path):
     global content_list
     if not content_list:
-        return "请先解析链接", None
-    if not save_path:
-        return "请先输入保存路径", None
-    if not link_content:
-        return "请先解析链接", None
-    if link_content not in content_list:
-        return "请选择要下载的文件", None
+        return "请先解析链接"
+    if not save_path or not os.path.exists(save_path):
+        return "请先输入保存路径or路径不存在"
+    
+    selected_index = json.loads(selected_index)
+    selected_index = [int(i) for i in selected_index]
+    print(selected_index, save_path)
 
-    file_name = link_content["file_name"]
-    file_path = link_content["file_path"]
-    download_url = f"https://cloud.tsinghua.edu.cn/d/{file_path}?dl=1"
-    utils.download_file(download_url, save_path, file_name)
-    return "下载成功", None
+    download_start = time.time()
+    for i in selected_index:
+        d = content_list[i]
+
+        if d["is_dir"]:
+            downlaod_dir(d, save_path)
+        else:
+            downlaod_file(d, save_path)
+
+    download_end = time.time()
+    logger.info(f"下载耗时：{download_end - download_start:.2f}s")
+
+    return f"下载成功, 耗时：{download_end - download_start:.2f}s"
 
 
 
@@ -84,6 +143,12 @@ def get_link_download_tab():
         parse_btn.click(fn=parse_btn_click,
                         inputs=[share_link],
                         outputs=[info, link_content])
+        
+        selected_list = gr.Text(visible=False)
+        download_btn.click(fn=download_btn_click,
+                           inputs=[selected_list, save_path],
+                           outputs=[info],
+                           _js="selected_link_download")
         
 
     return tab

@@ -21,3 +21,16 @@ function selected_repo(_disabled_list, path) {
 
     return [JSON.stringify(selected), path];
 }
+
+
+function selected_link_download(_, path) {
+    var selected = [];
+
+    gradioApp().querySelectorAll('#link_download input[type="checkbox"]').forEach(function(x) {
+        if (x.name.startsWith("select_") && x.checked) {
+            selected.push(x.name.substring(7));
+        }
+    });
+
+    return [JSON.stringify(selected), path];
+}

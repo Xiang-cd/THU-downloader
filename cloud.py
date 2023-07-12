@@ -153,6 +153,7 @@ async def adownload_file(url, filename, session):
     async with session.get(url) as resp:
         if resp.status == 200:
             f = await aiofiles.open(filename, mode='wb')
+            logger.info(filename)
             await f.write(await resp.read())
             await f.close()
             
@@ -280,7 +281,7 @@ def get_cloud_tab():
                            inputs=[],
                            outputs=[select_table])
         
-        selected_list = gr.Text(elem_id="extensions_disabled_list", visible=False)
+        selected_list = gr.Text(visible=False)
         subset_down_load_btn.click(fn=download_subset, 
                                    inputs=[selected_list, path], 
                                    outputs=[cloud_info],
