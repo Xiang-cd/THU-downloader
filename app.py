@@ -4,7 +4,9 @@ import logging
 import re
 import shared
 import utils
-import tsinghua_email
+from cloud import get_cloud_tab
+from link_download import get_link_download_tab
+from tsinghua_email import get_email_tab
 
 
 user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'
@@ -77,14 +79,11 @@ with gr.Blocks() as demo:
             login_btn.click(fn=login, inputs=[username, password], outputs=[login_info])
 
 
-        from cloud import get_cloud_tab
         get_cloud_tab()
 
-        from link_download import get_link_download_tab
         get_link_download_tab()
         
-        from tsinghua_email import get_email_tab
         get_email_tab()
 
-    
+
 demo.queue().launch()
