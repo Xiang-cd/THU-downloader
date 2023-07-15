@@ -5,6 +5,6 @@ import os
 
 
 cookie = RequestsCookieJar()
-
+sid = ""
 
 
