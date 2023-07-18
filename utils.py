@@ -9,10 +9,6 @@ from typing import List, AnyStr
 
 def webpath(fn):
     web_path = fn.replace('\\', '/')
-    # if fn.startswith(script_path):
-    # else:
-    #     web_path = os.path.abspath(fn)
-    print(f'file={web_path}?{os.path.getmtime(fn)}')
     return f'file={web_path}?{os.path.getmtime(fn)}'
 
 def stylesheet(fn):

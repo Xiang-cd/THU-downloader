@@ -39,11 +39,16 @@ mac, linux用户, clone后直接运行, 代码会自动搭建虚拟环境:
 ./run.sh
 ```
 
+windows用户, clone运行(未测试)
+```
+./run.bat
+```
+
 如果你对python环境管理很熟悉, 可以在本地进行依赖库的安装:
 
 ```
 pip install gradio==3.35.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
-gradio app.py
+python app.py
 ```
 
 
@@ -51,25 +56,28 @@ gradio app.py
 随后点击生成的链接。
 
 ```shell
-Launching in *reload mode* on: http://127.0.0.1:7860 (Press CTRL+C to quit)
-
-
-Running on local URL:  http://127.0.0.1:7861
+Running on local URL:  http://127.0.0.1:7860
 
 To create a public link, set `share=True` in `launch()`.
 ```
 
-输入用户名和密码, 点击登录, 切换tab, 输入目标的下载路径, 点击全部下载就能将所有的仓库按照原结构下载到目标路径, 如果只希望下载部分仓库, 则进行勾选后, 点击`选择下载`。
 
-对于链接下载, 切换到链接下载tab, 直接输入链接并解析, 选择路径并下载即可。
 
-对于邮箱下载, 切换到邮箱tab, 输入保存的地址, 点击下载即可。
+| 输入用户名和密码, 点击登录。                                 | 切换`清华云盘`tab, 输入目标的下载路径, 选择希望下载的仓库点击`选择下载`。 |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| ![login](./assets/login.png)                                 | ![cloud](./assets/cloud.png)                                 |
+| 对于链接下载, 切换到`链接下载`tab, 直接输入链接并点击`解析`, 选择路径并`下载`即可。 | 对于邮箱下载, 切换到`清华邮箱`tab, 输入保存的地址, 点击`下载所有邮件`即可。 |
+| ![link_download](./assets/link_download.png)                 | ![mail](./assets/mail.png)                                   |
+
+
+
+
 
 
 
 ### 性能测试
 
-|任务 | 使用携程 | 不使用协程 |
+|任务 | 使用协程 | 不使用协程 |
 |-|- | - |
 |大文件下载(14个文件, 455MB) | 27.56s |  29.15s |
 |小文件下载(68个文件, 56MB) | 4.82s |  27.88s|

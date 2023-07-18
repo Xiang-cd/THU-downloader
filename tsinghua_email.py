@@ -147,7 +147,7 @@ def tab_load():
     logger.info(f"get info list time: {ed - st:.2f}")
     print(len(global_email_list))
     
-    return f"success, get info list time: {ed - st:.2f}"
+    return f"加载耗时: {ed - st:.2f}, 你有{len(global_email_list)}封邮件等待下载"
 
 
 
