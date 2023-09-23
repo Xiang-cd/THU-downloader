@@ -67,7 +67,7 @@ def parse_btn_click(share_link):
 def downlaod_file(d, save_path):
     global share_key
     file_path = os.path.join(save_path, d["file_name"])
-    logger.info("downloading", file_path)
+    logger.info(f"downloading {file_path}")
     url = download_url.format(share_key, quote(d["file_path"]))
     r = requests.get(url, stream=True)
     
