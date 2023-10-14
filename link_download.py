@@ -15,9 +15,11 @@ logger = logging.getLogger(__file__)
 logger.setLevel("INFO")
 
 download_url = 'https://cloud.tsinghua.edu.cn/d/{}/files/?p={}&dl=1'
+rdownload_url = "https://cloud.tsinghua.edu.cn/d/{}/files/?p={}"
 dirent_url = 'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{}/dirents/?path={}'
 content_list = []
 share_key = ""
+can_download = True
 
 use_coroutine = True
 
@@ -30,10 +32,14 @@ def get_share_key(share_link):
 
 def parse_btn_click(share_link):
     code = ""
-    global share_key
+    global share_key, can_download
     share_key = get_share_key(share_link)
     if share_key is None:
         return "分享链接格式错误", code
+    
+    logger.debug(f"query url {dirent_url.format(share_key, quote('/'))}")
+    r = requests.get(share_link)
+    can_download = re.findall(r"canDownload: (.+?),", r.text)[0] == "true"
     
     r = requests.get(dirent_url.format(share_key, quote("/")))
     
@@ -43,6 +49,7 @@ def parse_btn_click(share_link):
         return "清华网盘在摸鱼 (=´ω｀=)...过一段时间再试试吧", code
     global content_list
     content_list = r.json()["dirent_list"]
+    logger.debug(f"content_list: {content_list}")
 
     data_ls = []
     for d in content_list:
@@ -60,22 +67,38 @@ def parse_btn_click(share_link):
         "link_download",
         []
     )
-    return "解析成功", code
+    info = f"解析成功, 可下载且预览" if can_download else f"解析成功, 仅预览"
+    return info, code
 
 
 
 def downlaod_file(d, save_path):
-    global share_key
+    global share_key, can_download
     file_path = os.path.join(save_path, d["file_name"])
     logger.info(f"downloading {file_path}")
-    url = download_url.format(share_key, quote(d["file_path"]))
-    r = requests.get(url, stream=True)
+    
+    if can_download:
+        url = download_url.format(share_key, quote(d["file_path"]))
+        r = requests.get(url, stream=True)
+    else:
+        logger.warning(f"preview only shared link, try with rdownload_url")
+        url = rdownload_url.format(share_key, quote(d["file_path"]))
+        raw_res = requests.get(url) # page with the actual download link
+        try:
+            rawPath = re.findall(r"rawPath: \'(.+)\'", raw_res.text)[0].encode('utf-8').decode('unicode-escape')
+        except:
+            logger.error(f"rawPath not found in {raw_res.text}")
+            return
+        logger.debug(f"rawPath: {rawPath}")
+        r = requests.get(rawPath, stream=True)
+    
     
     # total = int(r.headers.get('content-length', 0))
     with open(file_path, "wb") as f:
         for data in r.iter_content(chunk_size=1024*20):
             f.write(data)
-                
+    
+    logger.info(f"download {file_path} success")
 
 def downlaod_dir(d, save_path):
     cur_dir_path = os.path.join(save_path, d["folder_name"])
@@ -103,6 +126,7 @@ def downlaod_dir(d, save_path):
 
 def download_btn_click(selected_index, save_path):
     global content_list
+    save_path = save_path.strip()
     if not content_list:
         return "请先解析链接"
     if not save_path or not os.path.exists(save_path):
@@ -141,6 +165,10 @@ def get_link_download_tab():
         download_btn = gr.Button("下载")
 
         parse_btn.click(fn=parse_btn_click,
+                        inputs=[share_link],
+                        outputs=[info, link_content])
+        
+        share_link.submit(fn=parse_btn_click,
                         inputs=[share_link],
                         outputs=[info, link_content])
         

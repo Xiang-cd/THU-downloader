@@ -8,6 +8,7 @@
 - 一键安装运行
 - 支持图形界面
 - 协程高并发(2s下完1000+邮件)
+- 不能说的神秘功能
 
 如果你苦恼于:
 - 需要大规模迁移清华云盘中的内容但不想手动逐个点击下载 
@@ -25,10 +26,11 @@ TODO:
 - [x] 更高并发(真快!)
 - [x] 支持链接下载, 支持连接中一级列表选择
 - [x] 邮箱附件下载
+- [ ] 超鲁棒链接下载(in process)
 - [ ] 更细粒度选择
 - [ ] 更多应用集成...
 
-使用问题可以联系作者微信`xxyaw-`。
+使用问题可以[提交issue](https://github.com/Xiang-cd/THU-downloader/issues)联系作者微信`xxyaw-`。
 
 
 
@@ -68,9 +70,6 @@ To create a public link, set `share=True` in `launch()`.
 | ![login](./assets/login.png)                                 | ![cloud](./assets/cloud.png)                                 |
 | 对于链接下载, 切换到`链接下载`tab, 直接输入链接并点击`解析`, 选择路径并`下载`即可。 | 对于邮箱下载, 切换到`清华邮箱`tab, 输入保存的地址, 点击`下载所有邮件`即可。 |
 | ![link_download](./assets/link_download.png)                 | ![mail](./assets/mail.png)                                   |
-
-
-
 
 
 
