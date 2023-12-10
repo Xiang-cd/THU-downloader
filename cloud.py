@@ -90,66 +90,8 @@ def get_repos(progress=gr.Progress(track_tqdm=True)):
                                   selected_index=[])
     
     return "加载成功", code
-
-
-def download_file(url, filename):
-    response = requests.get(url, stream=True, cookies=shared.cookie)
-    total = int(response.headers.get('content-length', 0))
-    
-    with open(filename, "wb") as f:
-        for data in response.iter_content(chunk_size=1024*20):
-            size = f.write(data)
     
 
-def get_dir_list(repo_id, relative_path):
-    relative_path = relative_path.replace("/", "%2F")
-    response = requests.get(f"https://cloud.tsinghua.edu.cn/api/v2.1/repos/{repo_id}/dir/?p={relative_path}&with_thumbnail=true",  cookies=shared.cookie).json()
-    return response.get("dirent_list", None)
-
-
-def dowload_dir(repo_name, relative_dir_path):
-    logger.debug(f"cur relative_dir_path {relative_dir_path}")
-    global global_download_base, global_name_to_repos
-    repo_id = global_name_to_repos[repo_name]["repo_id"]
-    
-    contents = get_dir_list(repo_id, relative_dir_path)
-    cur_os_dir = os.path.join(global_download_base, repo_name, relative_dir_path)
-    logger.info(f"making dir cur os dir {cur_os_dir}")
-    os.makedirs(cur_os_dir, exist_ok=True)
-    
-    
-    for content in tqdm(contents, desc="dir progress"):
-        p_dir = content["parent_dir"][1:] if content["parent_dir"].startswith("/") else content["parent_dir"]
-        content_relative_path = os.path.join(p_dir, content["name"])
-        if content["type"] == "file":
-            file_path = os.path.join(cur_os_dir, content["name"])
-            logger.info(f"dowloading {file_path}")
-            download_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content_relative_path}?dl=1', file_path)
-
-        elif content["type"] == "dir":
-            dowload_dir(repo_name, content_relative_path)
-
-
-def download_repo(name, path, progress=gr.Progress()):
-    global global_name_to_repos
-    logger.info(f"downloading {name}")
-    repo_id = global_name_to_repos[name]["repo_id"]
-
-    contents = get_dir_list(repo_id, "/")
-    repo_dir = os.path.join(path, name)
-    logger.info(f"making dir {repo_dir}")
-    os.makedirs(repo_dir, exist_ok=True)
-    
-
-    for content in progress.tqdm(contents, desc="inner repo progress"):
-        if content["type"] == "file":
-            file_path = os.path.join(repo_dir, content["name"])
-            logger.info(f"dowloading {file_path}")
-            download_file(f'https://cloud.tsinghua.edu.cn/lib/{repo_id}/file/{content["name"]}?dl=1', file_path)
-
-        elif content["type"] == "dir":
-            dowload_dir(name, f'{content["name"]}')
-            
 async def adownload_file(url, filename, session):
     async with session.get(url) as resp:
         if resp.status == 200:
@@ -228,15 +170,12 @@ def download_subset(selected_index, path, progress=gr.Progress()):
     download_start = time.time()
     if os.path.exists(path) and os.path.isdir(path):
         for repo in progress.tqdm(repo_names, desc="repo download progress"):
-            if use_coroutine:
-                try:
-                    loop = asyncio.get_event_loop()
-                except:
-                    loop = asyncio.new_event_loop()
-                loop.run_until_complete(adownload_repo(repo, path, progress))
-                loop.close()
-            else:
-                download_repo(repo, path, progress)
+            try:
+                loop = asyncio.get_event_loop()
+            except:
+                loop = asyncio.new_event_loop()
+            loop.run_until_complete(adownload_repo(repo, path, progress))
+            loop.close()
         download_end = time.time()
         logger.info(f"download subset using time {download_end - download_start:.2f}s")
         return f"ok, using time {download_end - download_start:.2f}s"

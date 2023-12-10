@@ -27,7 +27,7 @@ def login(username, password, progress=gr.Progress(track_tqdm=True)):
     s = requests.Session()
     login_uri = 'https://id.tsinghua.edu.cn/do/off/ui/auth/login/post/167ed2c25d7f176c20c79e341e2ccdf0/0?/login.do'
     values = {'i_user': username, 'i_pass': password, 'atOnce': 'true'}
-    info = s.post(login_uri, data=values).text
+    info = s.post(login_uri, data=values, headers=shared.headers).text
     
     ticket = re.findall('ticket=(.+?)"', info)
     successful = len(ticket) > 0
@@ -61,6 +61,7 @@ def login(username, password, progress=gr.Progress(track_tqdm=True)):
         return ret_info
             
     else:
+        logger.error(f"{username} login failed")
         return "登录失败"
 
 

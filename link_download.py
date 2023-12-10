@@ -90,33 +90,6 @@ def parse_btn_click(share_link):
     return info, code
 
 
-
-def downlaod_file(d, save_path):
-    global share_key, can_download
-    file_path = os.path.join(save_path, d["file_name"])
-    logger.info(f"downloading {file_path}")
-    
-    if can_download:
-        url = download_url.format(share_key, quote(d["file_path"]))
-        r = requests.get(url, stream=True)
-    else:
-        logger.warning(f"preview only shared link, try with rdownload_url")
-        url = rdownload_url.format(share_key, quote(d["file_path"]))
-        raw_res = requests.get(url) # page with the actual download link
-        try:
-            rawPath = re.findall(r"rawPath: \'(.+)\'", raw_res.text)[0].encode('utf-8').decode('unicode-escape')
-        except:
-            logger.error(f"rawPath not found in {raw_res.text}")
-            return
-        logger.debug(f"rawPath: {rawPath}")
-        r = requests.get(rawPath, stream=True)
-    
-    
-    with open(file_path, "wb") as f:
-        for data in r.iter_content(chunk_size=1024*20):
-            f.write(data)
-    
-    logger.info(f"download {file_path} success")
     
 async def adownload_file(d, save_path, session):
     global share_key, can_download
@@ -143,27 +116,6 @@ async def adownload_file(d, save_path, session):
 
     logger.info(f"download {file_path} success")
 
-def downlaod_dir(d, save_path):
-    cur_dir_path = os.path.join(save_path, d["folder_name"])
-    logger.debug(f"当前写在信息：{d}")
-    logger.debug(f"创建文件夹：{cur_dir_path}")
-    os.makedirs(cur_dir_path, exist_ok=True)
-
-    r = requests.get(dirent_url.format(share_key, quote(d["folder_path"])))
-
-    if r.status_code != 200:
-        if r.status_code == 404:
-            logger.error(f"{d}, 404")
-        if r.status_code == 500:
-            logger.error(f"{d} 500")
-        return
-    else:
-        local_content_list = r.json()["dirent_list"]
-        for d in local_content_list:
-            if d["is_dir"]:
-                downlaod_dir(d, cur_dir_path)
-            else:
-                downlaod_file(d, cur_dir_path)
 
 async def adownload_dir(d, save_path, session):
     cur_dir_path = os.path.join(save_path, d["folder_name"])
