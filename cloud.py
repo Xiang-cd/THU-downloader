@@ -31,7 +31,7 @@ use_coroutine = True
 def get_repos(progress=gr.Progress(track_tqdm=True)):
     # 刚进入tab时加载所有的仓库
     global global_repos
-    response = requests.get("https://cloud.tsinghua.edu.cn/api/v2.1/repos/?type=mine", cookies=shared.cookie)
+    response = requests.get("https://cloud.tsinghua.edu.cn/api/v2.1/repos/?type=mine", cookies=shared.cookies)
     if response.status_code != 200:
         return "请先登录", []
     try:
@@ -54,7 +54,7 @@ def get_repos(progress=gr.Progress(track_tqdm=True)):
     
     async def get_repos_info():
         tasks = []
-        async with ClientSession(cookies=shared.cookie) as session:
+        async with ClientSession(cookies=shared.cookies) as session:
             for index, repo in enumerate(global_repos):
                 task = asyncio.ensure_future(
                                 get_single_info(
@@ -137,7 +137,7 @@ async def adownload_repo(name, path, progress=gr.Progress()):
     logger.info(f"downloading {name}")
     repo_id = global_name_to_repos[name]["repo_id"]
 
-    async with ClientSession(cookies=shared.cookie) as session:
+    async with ClientSession(cookies=shared.cookies) as session:
         contents = await aget_dir_list(repo_id, "/", session)
         repo_dir = os.path.join(path, name)
         logger.info(f"making dir {repo_dir}")

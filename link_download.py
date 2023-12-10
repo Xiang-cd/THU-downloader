@@ -141,7 +141,7 @@ async def adownload_dir(d, save_path, session):
 
 async def adownload(selected_index, save_path):
     global content_list
-    async with ClientSession(cookies=shared.cookie, headers=shared.headers) as session:
+    async with ClientSession(cookies=shared.cookies, headers=shared.headers) as session:
         dls = [content_list[i] for i in selected_index]
         tasks = [asyncio.ensure_future(adownload_dir(d, save_path, session)) if d["is_dir"] 
                    else asyncio.ensure_future(adownload_file(d, save_path, session)) for d in dls]

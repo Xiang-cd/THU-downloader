@@ -8,9 +8,6 @@ from cloud import get_cloud_tab
 from link_download import get_link_download_tab
 from tsinghua_email import get_email_tab
 
-
-
-
 if not hasattr(shared, 'GradioTemplateResponseOriginal'):
     shared.GradioTemplateResponseOriginal = gr.routes.templates.TemplateResponse
 
@@ -35,30 +32,12 @@ def login(username, password, progress=gr.Progress(track_tqdm=True)):
         logger.info(f"{username} login successs")
         # 拿ticket, 随后可以拿到sessionid
         res_cloud = s.get(f"https://cloud.tsinghua.edu.cn/tsinghua-auth/callback/?ticket={ticket[0]}")
-        # 同时登录邮箱
-        res_mail = s.post("https://mails.tsinghua.edu.cn/coremail/index.jsp?cus=1", 
-           data={
-                "uid": username,
-                "domain": "mails.tsinghua.edu.cn",
-                "password": password,
-                "action:login": ""
-           },)
-        
-        shared.cookie = s.cookies
-        if res_cloud.status_code == 200 and res_mail.status_code == 200:
-            res = re.findall(r'sid = "(\w+)";', res_mail.text)
-            shared.sid = res[0]
-            requests.utils.add_dict_to_cookiejar(s.cookies, {"Coremail.sid":shared.sid})
-            shared.cookie = s.cookies
+
+        if res_cloud.status_code == 200:
+            shared.cookies = s.cookies
             return "登录成功"
-        
-        ret_info = ""
-        if res_mail.status_code != 200:
-            logger.error(f"{username} login cloud failed")
-            ret_info += "清华邮箱登录失败, 请检查用户名密码, 注意不要使用学号\n"
-        if res_cloud.status_code != 200:
-            ret_info += "清华云盘登录失败, 请检查用户名密码"
-        return ret_info
+        else:
+            return "清华云盘登录失败, 请检查用户名密码"
             
     else:
         logger.error(f"{username} login failed")

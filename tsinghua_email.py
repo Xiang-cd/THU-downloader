@@ -24,6 +24,29 @@ email_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/viewMailHTML.jsp?mi
 download_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/allDownload.jsp?sid={sid}&mid={mid}&mboxa="
 
 
+def email_login(username, password):
+    # 登录邮箱
+    s = requests.Session()
+    res_mail = s.post("https://mails.tsinghua.edu.cn/coremail/index.jsp?cus=1", 
+        data={
+            "uid": username,
+            "domain": "mails.tsinghua.edu.cn",
+            "password": password,
+            "action:login": ""
+        },)
+    res = re.findall(r'sid = "(\w+)";', res_mail.text)
+    if len(res) == 0 or res_mail.status_code != 200:
+        logger.error(f"{username} login cloud failed")
+        return "清华邮箱登录失败, 请检查用户名密码, 注意不要使用学号, 使用客户端专用密码\n"
+    
+    shared.sid = res[0]
+    requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail.sid":shared.sid})
+    return "清华邮箱登录成功\n"
+
+def msg_code_verify(username, password, msg_code):
+    
+    pass
+            
 
 def replace_date_format(text):
     pattern = r'new Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)'
@@ -53,9 +76,10 @@ def load_to_dict(json_string):
 async def get_email_list():
     global global_email_list
     r = requests.post(list_url.format(sid=shared.sid, page_num=1), 
-                      cookies=shared.cookie)
+                      cookies=shared.cookies)
     if r.status_code != 200:
         logger.error("获取邮件列表失败")
+        logger.error(r.text)
         return []
     dic_data = load_to_dict(r.text)
     totol_mail_num = dic_data["total"]
@@ -67,7 +91,7 @@ async def get_email_list():
     async def get_page(page_num, session: ClientSession):
         global global_email_list
         async with session.post(list_url.format(sid=shared.sid, page_num=page_num),
-                          cookies=shared.cookie) as r:
+                          cookies=shared.cookies) as r:
             if r.status != 200:
                 logger.error(f"获取邮件列表失败: page_num={page_num}")
                 return
@@ -75,7 +99,7 @@ async def get_email_list():
             assert dic_data["offset"] == (page_num-1) * 200
             global_email_list += dic_data["msgList"]
     
-    async with ClientSession(cookies=shared.cookie) as session:
+    async with ClientSession(cookies=shared.cookies) as session:
         tasks = []
         for page_num in range(2, (totol_mail_num-1) // 200 + 2):
             task = asyncio.ensure_future(
@@ -112,7 +136,7 @@ async def adownload_one(email_info, save_dir, session: ClientSession):
             
         
 async def download_all(save_dir):
-    async with ClientSession(cookies=shared.cookie) as session:
+    async with ClientSession(cookies=shared.cookies) as session:
         tasks = []
         for email_info in global_email_list:
             task = asyncio.ensure_future(
@@ -155,9 +179,23 @@ def get_email_tab():
     with gr.TabItem("清华邮箱") as tab:
         info = gr.Label(label="output box")
         explain = gr.Markdown("## 提供邮箱迁移备份功能, 下载后的文件以eml文件格式保存, 包含附件,可以用飞书打开")
+        with gr.Row():
+            username = gr.Textbox(lines=1, label="用户名")
+            password = gr.Textbox(lines=1, label="密码", type="password")
+            msg_code = gr.Textbox(lines=1, label="验证码")
+            login_btn = gr.Button("登录")
+            msg_code_verify_btn = gr.Button("验证码验证")
+            
         path = gr.Textbox(lines=1, label="文件路径")
         download_all_btn = gr.Button("下载所有邮件")
     
+    login_btn.click(fn=email_login,
+                    inputs=[username, password],
+                    outputs=[info])
+    msg_code_verify_btn.click(fn=msg_code_verify,
+                              inputs=[username, password, msg_code],
+                              outputs=[info])
+
     tab.select(fn=tab_load, outputs=[info])
     download_all_btn.click(fn=download_all_click,
                            inputs=[path],

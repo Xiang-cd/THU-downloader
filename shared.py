@@ -12,7 +12,7 @@ user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 headers = {'User-Agent': user_agent, 'Connection': 'keep-alive'}
 
 
-cookie = RequestsCookieJar()
+cookies = RequestsCookieJar()
 sid = ""
 
 
