@@ -13,9 +13,9 @@ import zipfile
 from pathlib import Path
 
 import logging
-logging.basicConfig(filename="dowload.log",
+logging.basicConfig(filename=shared.LOG_FILE,
                     filemode='a')
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(Path(__file__).name)
 logger.setLevel(shared.LOG_LEVEL)
 
 global_email_list = []

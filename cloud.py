@@ -12,11 +12,12 @@ import utils
 import functools
 import asyncio
 import aiofiles
+from pathlib import Path
 from aiohttp import ClientSession
 
-logging.basicConfig(filename="dowload.log",
+logging.basicConfig(filename=shared.LOG_FILE,
                     filemode='a')
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(Path(__file__).name)
 logger.setLevel(shared.LOG_LEVEL)
 
 

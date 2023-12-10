@@ -10,10 +10,14 @@ import time
 import logging
 import shared
 import functools
+import asyncio
+from aiohttp import ClientSession
+from pathlib import Path
+import aiofiles
 
-logging.basicConfig(filename="dowload.log",
+logging.basicConfig(filename=shared.LOG_FILE,
                     filemode='a')
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(Path(__file__).name)
 logger.setLevel(shared.LOG_LEVEL)
 
 download_url = 'https://cloud.tsinghua.edu.cn/d/{}/files/?p={}&dl=1'
@@ -113,6 +117,31 @@ def downlaod_file(d, save_path):
             f.write(data)
     
     logger.info(f"download {file_path} success")
+    
+async def adownload_file(d, save_path, session):
+    global share_key, can_download
+    file_path = os.path.join(save_path, d["file_name"])
+    logger.info(f"downloading {file_path}")
+    
+    if can_download:
+        url = download_url.format(share_key, quote(d["file_path"]))
+        r = await session.get(url)
+    else:
+        logger.warning(f"preview only shared link, try with rdownload_url")
+        url = rdownload_url.format(share_key, quote(d["file_path"]))
+        raw_res = await session.get(url) # page with the actual download link
+        try:
+            rawPath = re.findall(r"rawPath: \'(.+)\'", raw_res.text)[0].encode('utf-8').decode('unicode-escape')
+        except:
+            logger.error(f"rawPath not found in {raw_res.text}")
+            return
+        logger.debug(f"rawPath: {rawPath}")
+        r = await session.get(rawPath)
+    
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(await r.read())
+
+    logger.info(f"download {file_path} success")
 
 def downlaod_dir(d, save_path):
     cur_dir_path = os.path.join(save_path, d["folder_name"])
@@ -136,6 +165,35 @@ def downlaod_dir(d, save_path):
             else:
                 downlaod_file(d, cur_dir_path)
 
+async def adownload_dir(d, save_path, session):
+    cur_dir_path = os.path.join(save_path, d["folder_name"])
+    logger.debug(f"当前写在信息：{d}")
+    logger.debug(f"创建文件夹：{cur_dir_path}")
+    os.makedirs(cur_dir_path, exist_ok=True)
+
+    r = await session.get(dirent_url.format(share_key, quote(d["folder_path"])))
+
+    if r.status != 200:
+        if r.status == 404:
+            logger.error(f"{d}, 404")
+        if r.status == 500:
+            logger.error(f"{d} 500")
+        return
+    else:
+        js = await r.json()
+        local_content_list = js["dirent_list"]
+        tasks = [asyncio.ensure_future(adownload_dir(d, save_path, session)) if d["is_dir"] 
+                   else asyncio.ensure_future(adownload_file(d, save_path, session)) for d in local_content_list]
+        await asyncio.gather(*tasks)
+        
+
+async def adownload(selected_index, save_path):
+    global content_list
+    async with ClientSession(cookies=shared.cookie, headers=shared.headers) as session:
+        dls = [content_list[i] for i in selected_index]
+        tasks = [asyncio.ensure_future(adownload_dir(d, save_path, session)) if d["is_dir"] 
+                   else asyncio.ensure_future(adownload_file(d, save_path, session)) for d in dls]
+        await asyncio.gather(*tasks)
 
 def download_btn_click(selected_index, save_path):
     global content_list
@@ -150,14 +208,13 @@ def download_btn_click(selected_index, save_path):
     logger.debug(f"{selected_index}, {save_path}")
 
     download_start = time.time()
-    for i in selected_index:
-        d = content_list[i]
-
-        if d["is_dir"]:
-            downlaod_dir(d, save_path)
-        else:
-            downlaod_file(d, save_path)
-
+    try:
+        loop = asyncio.get_event_loop()
+    except:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    loop.run_until_complete(asyncio.ensure_future(adownload(selected_index, save_path)))
+    
     download_end = time.time()
     logger.info(f"下载耗时：{download_end - download_start:.2f}s")
 
@@ -182,7 +239,7 @@ def get_link_download_tab():
         download_btn = gr.Button("下载")
         
         select_all.click(
-            fn=functools.partial(select_all_click, False),
+            fn=functools.partial(select_all_click, True),
             outputs=[link_content],
         )
         unselect_all.click(
