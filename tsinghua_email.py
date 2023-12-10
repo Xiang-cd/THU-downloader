@@ -16,7 +16,7 @@ import logging
 logging.basicConfig(filename="dowload.log",
                     filemode='a')
 logger = logging.getLogger(__file__)
-logger.setLevel("INFO")
+logger.setLevel(shared.LOG_LEVEL)
 
 global_email_list = []
 list_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/getListDatas.jsp?sid={sid}&fid=1&nav_type=system&inbox=true&page_no={page_num}"

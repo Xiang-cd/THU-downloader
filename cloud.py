@@ -17,7 +17,7 @@ from aiohttp import ClientSession
 logging.basicConfig(filename="dowload.log",
                     filemode='a')
 logger = logging.getLogger(__file__)
-logger.setLevel("INFO")
+logger.setLevel(shared.LOG_LEVEL)
 
 
 global_repos = []
@@ -275,10 +275,8 @@ def get_cloud_tab():
         cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
 
         select_all.click(fn=functools.partial(select_all_click, True),
-                         inputs=[],
                          outputs=[select_table])
         unselect_all.click(fn=functools.partial(select_all_click, False),
-                           inputs=[],
                            outputs=[select_table])
         
         selected_list = gr.Text(visible=False)
