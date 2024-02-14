@@ -17,7 +17,8 @@ import sys, signal
 
 import logging
 logging.basicConfig(filename=shared.LOG_FILE,
-                    filemode='a')
+                    filemode='a',
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(Path(__file__).name)
 logger.setLevel(shared.LOG_LEVEL)
 
@@ -52,7 +53,7 @@ def email_login_stage1(username, password):
     if "错误" in info:
         return info
     else:
-        return "请查看邮箱密码"
+        return "请查看邮箱验证码并输入"
 
 
 def email_login_stage2(msg_code):
@@ -122,8 +123,21 @@ async def adownload_one(email_info, save_dir, session: ClientSession, semaphore)
             await f.close()
             logger.info(f"download {file_path} DONE")
             
+def download_one(email_info, save_dir):
+    mid = email_info["id"]
+    r = requests.get(download_url.format(sid=shared.sid, mid=mid), 
+                     cookies=shared.cookies)
+    if r.status_code == 200:
+        file_path = os.path.join(save_dir, f"{email_info['subject'].replace('/', '_')}+{mid}.eml")
+        logger.info(f"download {file_path}")
+        with open(file_path, "wb") as f:
+            f.write(r.content)
+        logger.info(f"download {file_path} DONE")
+    else:
+        logger.error(f"download {file_path} failed")
+            
         
-async def download_all(save_dir):
+async def adownload_all(save_dir):
     async with ClientSession(cookies=shared.cookies) as session:
         tasks = []
         # 限制并发量
@@ -135,15 +149,25 @@ async def download_all(save_dir):
             tasks.append(task)
         await asyncio.gather(*tasks)     
 
+def download_all(save_dir):
+    for email_info in global_email_list:
+        download_one(email_info, save_dir)
+
 def download_all_click(save_dir):
     if not os.path.exists(save_dir) or os.path.isfile(save_dir):
         return "文件夹路径错误"
-    
-    loop = asyncio.new_event_loop()
+    # dump meta data
+    with open(os.path.join(save_dir, "email_list.json"), "w") as f:
+        json.dump(global_email_list, f, indent=4, ensure_ascii=False)
     st = time.time()
-    loop.run_until_complete(download_all(save_dir))
-    ed = time.time()
-    loop.close()
+    if shared.MAIL_USE_ASYNC:
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(adownload_all(save_dir))
+        ed = time.time()
+        loop.close()
+    else:
+        download_all(save_dir)
+        ed = time.time()
     logger.info(f"down load email time: {ed - st:.2f}")
     return f"down load email time: {ed - st:.2f}"
     
@@ -157,7 +181,11 @@ def tab_load():
 def get_email_tab():
     with gr.TabItem("清华邮箱") as tab:
         info = gr.Label(label="output box")
-        explain = gr.Markdown("## 提供邮箱迁移备份功能, 下载后的文件以eml文件格式保存, 包含附件,可以用飞书打开")
+        explain = gr.Markdown(
+"""## 提供邮箱迁移备份功能, 下载后的文件以eml文件格式保存, 包含附件,可以用飞书打开
+- 验证码只能输入一次，第一次失败请重新登录
+- 可能会出现网络问题中断下载，保险起见请全部重新下载
+""")
         with gr.Row():
             username = gr.Textbox(lines=1, label="用户名")
             password = gr.Textbox(lines=1, label="密码", type="password")
