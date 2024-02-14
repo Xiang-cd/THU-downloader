@@ -22,20 +22,24 @@ logger = logging.getLogger(Path(__file__).name)
 logger.setLevel(shared.LOG_LEVEL)
 
 global_email_list = []
-list_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/getListDatas.jsp?sid={sid}&fid=1&nav_type=system&inbox=true&page_no={page_num}"
+list_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/getListDatas.jsp?sid={sid}&fid=1&nav_type=system&inbox=true&page_no={page_num}" # old version
+list_url = "https://mails.tsinghua.edu.cn/coremail/s/json?sid={sid}&func=mbox%3AlistMessages"
 email_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/viewMailHTML.jsp?mid={mid}&partId=0&isSearch=&priority=&supportSMIME=&striptTrs=true&mboxa=&sandbox=1"
-download_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/allDownload.jsp?sid={sid}&mid={mid}&mboxa="
+download_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/allDownload.jsp?sid={sid}&mid={mid}&mboxa=" # old version
+download_url = "https://mails.tsinghua.edu.cn/coremail/mbox-data/?mode=download&mid={mid}&mboxa="
 
 login_process = None
+global_user_name = None
 
 
 def email_login_stage1(username, password):
-    global login_process
+    global login_process, global_user_name
     if login_process is not None:
         try:
             os.killpg(os.getpgid(login_process.pid), signal.SIGTERM)
         except:
             pass
+    global_user_name = username
     login_process = Popen(f"{sys.executable} email_login.py", stdout=PIPE, stdin=PIPE, shell=True, preexec_fn=os.setsid)
     login_process.stdout.readline().decode("utf-8")
     login_process.stdin.write(f"{username}\n".encode("utf-8"))
@@ -55,18 +59,17 @@ def email_login_stage2(msg_code):
     global login_process
     login_process.stdin.write(f"{msg_code}\n".encode("utf-8"))
     login_process.stdin.flush()
-    info, sid = login_process.stdout.readline().decode("utf-8").split()
+    info = login_process.stdout.read().decode("utf-8")
     if "成功" in info:
+        sid = re.search(r'Coremail.sid=(\w+)', info).group(1)
+        coremail = re.search(r'Coremail=(\w+)', info).group(1)
+        logger.info(f"Coremail.sid={sid}; Coremail={coremail};")
         shared.sid = sid
-        requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail.sid":shared.sid})
-        loop = asyncio.new_event_loop()
-        st = time.time()
-        loop.run_until_complete(get_email_list())
-        ed = time.time()
-        loop.close()
-        logger.info(f"get info list time: {ed - st:.2f}, len(global_email_list)={len(global_email_list)}") 
-        info += f"加载耗时: {ed - st:.2f}, 你有{len(global_email_list)}封邮件等待下载"
-
+        requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail.sid": sid})
+        requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail": coremail})
+        get_email_list()
+        total_size = sum([item['size'] for item in global_email_list]) / 1024 / 1024
+        info = f"成功, 你有{len(global_email_list)}封邮件等待下载，共{total_size:.2f}MB"
     return info
             
 
@@ -93,76 +96,41 @@ def load_to_dict(json_string):
     return ast.literal_eval(json_string)
     
 
-    
-
-async def get_email_list():
-    global global_email_list
+def get_email_list():
+    global global_email_list, global_user_name
     r = requests.post(list_url.format(sid=shared.sid, page_num=1), 
                       cookies=shared.cookies)
     if r.status_code != 200:
         logger.error("获取邮件列表失败")
         logger.error(r.text)
-        return []
-    dic_data = load_to_dict(r.text)
-    totol_mail_num = dic_data["total"]
-    assert dic_data["offset"] == 0
-    global_email_list += dic_data["msgList"]
+        global_email_list.clear()
+        return "获取失败，请登录"
+    global_email_list = r.json()["var"]
+    total_size = sum([item['size'] for item in global_email_list]) / 1024 / 1024
+    info = f"成功, 你有{len(global_email_list)}封邮件等待下载，共{total_size:.2f}MB"
+    return info
     
 
-    # 默认每次返回200个邮件信息
-    async def get_page(page_num, session: ClientSession):
-        global global_email_list
-        async with session.post(list_url.format(sid=shared.sid, page_num=page_num),
-                          cookies=shared.cookies) as r:
-            if r.status != 200:
-                logger.error(f"获取邮件列表失败: page_num={page_num}")
-                return
-            dic_data = load_to_dict(await r.text())
-            assert dic_data["offset"] == (page_num-1) * 200
-            global_email_list += dic_data["msgList"]
-    
-    async with ClientSession(cookies=shared.cookies) as session:
-        tasks = []
-        for page_num in range(2, (totol_mail_num-1) // 200 + 2):
-            task = asyncio.ensure_future(
-                get_page(page_num, session)
-            )
-            tasks.append(task)
-        await asyncio.gather(*tasks)
-        
-    assert totol_mail_num == len(global_email_list)
-
-async def adownload_one(email_info, save_dir, session: ClientSession):
-    mid = email_info["item"]["id"]
-    receivedDate = email_info["item"]["receivedDate"]
-    async with session.get(download_url.format(sid=shared.sid, mid=mid)) as r:
+async def adownload_one(email_info, save_dir, session: ClientSession, semaphore):
+    mid = email_info["id"]
+    async with session.get(download_url.format(sid=shared.sid, mid=mid)) as r, semaphore:
         if r.status == 200:
-            file_path = os.path.join(save_dir, f"{receivedDate}+{mid}.zip")
-            logger.info(f"正在下载{file_path}")
-            f = await aiofiles.open(file_path, mode='wb')
+            file_path = os.path.join(save_dir, f"{email_info['subject'].replace('/', '_')}+{mid}.eml")
             logger.info(f"download {file_path}")
+            f = await aiofiles.open(file_path, mode='wb')
             await f.write(await r.read())
             await f.close()
-            # 先下载到zip, 再解压才能得到正确的邮件内容(图片,附件能够正常打开)
-            # 丑陋就丑陋一点吧
-            logger.info(f"{file_path} 下载完成")
-            f = zipfile.ZipFile(file_path,'r')
-            for name in f.namelist():
-                extract_path = Path(f.extract(name, save_dir))
-                new_name = name.encode("cp437").decode("gb18030")
-                extract_path.rename(extract_path.with_name(new_name))
-                logger.info(f"{file_path} 解压完成")
-            f.close()
-            await aiofiles.os.remove(file_path)
-            logger.info(f"{file_path} 删除完成")
+            logger.info(f"download {file_path} DONE")
             
         
 async def download_all(save_dir):
     async with ClientSession(cookies=shared.cookies) as session:
         tasks = []
+        # 限制并发量
+        semaphore = asyncio.Semaphore(shared.MAX_DOWNLOAD_TASKS)
         for email_info in global_email_list:
             task = asyncio.ensure_future(
-                adownload_one(email_info, save_dir, session)
+                adownload_one(email_info, save_dir, session, semaphore)
             )
             tasks.append(task)
         await asyncio.gather(*tasks)     
@@ -181,8 +149,7 @@ def download_all_click(save_dir):
     
 
 def tab_load():
-    global global_email_list
-    global_email_list.clear()
+    get_email_list()
     return f""
 
 
