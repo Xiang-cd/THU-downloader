@@ -11,6 +11,9 @@ import shared
 from aiohttp import ClientSession
 import zipfile
 from pathlib import Path
+import asyncio
+from subprocess import Popen, PIPE
+import sys, signal
 
 import logging
 logging.basicConfig(filename=shared.LOG_FILE,
@@ -23,29 +26,48 @@ list_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/getListDatas.jsp?sid
 email_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/viewMailHTML.jsp?mid={mid}&partId=0&isSearch=&priority=&supportSMIME=&striptTrs=true&mboxa=&sandbox=1"
 download_url = "https://mails.tsinghua.edu.cn/coremail/XT3/mbox/allDownload.jsp?sid={sid}&mid={mid}&mboxa="
 
+login_process = None
 
-def email_login(username, password):
-    # 登录邮箱
-    s = requests.Session()
-    res_mail = s.post("https://mails.tsinghua.edu.cn/coremail/index.jsp?cus=1", 
-        data={
-            "uid": username,
-            "domain": "mails.tsinghua.edu.cn",
-            "password": password,
-            "action:login": ""
-        },)
-    res = re.findall(r'sid = "(\w+)";', res_mail.text)
-    if len(res) == 0 or res_mail.status_code != 200:
-        logger.error(f"{username} login cloud failed")
-        return "清华邮箱登录失败, 请检查用户名密码, 注意不要使用学号, 使用客户端专用密码\n"
-    
-    shared.sid = res[0]
-    requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail.sid":shared.sid})
-    return "清华邮箱登录成功\n"
 
-def msg_code_verify(username, password, msg_code):
-    
-    pass
+def email_login_stage1(username, password):
+    global login_process
+    if login_process is not None:
+        try:
+            os.killpg(os.getpgid(login_process.pid), signal.SIGTERM)
+        except:
+            pass
+    login_process = Popen(f"{sys.executable} email_login.py", stdout=PIPE, stdin=PIPE, shell=True, preexec_fn=os.setsid)
+    login_process.stdout.readline().decode("utf-8")
+    login_process.stdin.write(f"{username}\n".encode("utf-8"))
+    login_process.stdin.flush()
+    login_process.stdout.readline().decode("utf-8")
+    login_process.stdin.write(f"{password}\n".encode("utf-8"))
+    login_process.stdin.flush()
+    info = login_process.stdout.readline().decode("utf-8")
+
+    if "错误" in info:
+        return info
+    else:
+        return "请查看邮箱密码"
+
+
+def email_login_stage2(msg_code):
+    global login_process
+    login_process.stdin.write(f"{msg_code}\n".encode("utf-8"))
+    login_process.stdin.flush()
+    info, sid = login_process.stdout.readline().decode("utf-8").split()
+    if "成功" in info:
+        shared.sid = sid
+        requests.utils.add_dict_to_cookiejar(shared.cookies, {"Coremail.sid":shared.sid})
+        loop = asyncio.new_event_loop()
+        st = time.time()
+        loop.run_until_complete(get_email_list())
+        ed = time.time()
+        loop.close()
+        logger.info(f"get info list time: {ed - st:.2f}, len(global_email_list)={len(global_email_list)}") 
+        info += f"加载耗时: {ed - st:.2f}, 你有{len(global_email_list)}封邮件等待下载"
+
+    return info
             
 
 def replace_date_format(text):
@@ -161,17 +183,7 @@ def download_all_click(save_dir):
 def tab_load():
     global global_email_list
     global_email_list.clear()
-    
-
-    loop = asyncio.new_event_loop()
-    st = time.time()
-    loop.run_until_complete(get_email_list())
-    ed = time.time()
-    loop.close()
-    logger.info(f"get info list time: {ed - st:.2f}")
-    print(len(global_email_list))
-    
-    return f"加载耗时: {ed - st:.2f}, 你有{len(global_email_list)}封邮件等待下载"
+    return f""
 
 
 
@@ -182,18 +194,19 @@ def get_email_tab():
         with gr.Row():
             username = gr.Textbox(lines=1, label="用户名")
             password = gr.Textbox(lines=1, label="密码", type="password")
-            msg_code = gr.Textbox(lines=1, label="验证码")
             login_btn = gr.Button("登录")
+            msg_code = gr.Textbox(lines=1, label="验证码")
             msg_code_verify_btn = gr.Button("验证码验证")
             
         path = gr.Textbox(lines=1, label="文件路径")
         download_all_btn = gr.Button("下载所有邮件")
     
-    login_btn.click(fn=email_login,
+    login_btn.click(fn=email_login_stage1,
                     inputs=[username, password],
                     outputs=[info])
-    msg_code_verify_btn.click(fn=msg_code_verify,
-                              inputs=[username, password, msg_code],
+    
+    msg_code_verify_btn.click(fn=email_login_stage2,
+                              inputs=[msg_code],
                               outputs=[info])
 
     tab.select(fn=tab_load, outputs=[info])
