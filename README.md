@@ -49,7 +49,7 @@ windows用户, clone运行(未测试)
 如果你对python环境管理很熟悉, 可以在本地进行依赖库的安装:
 
 ```
-pip install gradio==3.35.2 -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r requirements.txt https://pypi.tuna.tsinghua.edu.cn/simple
 python app.py
 ```
 

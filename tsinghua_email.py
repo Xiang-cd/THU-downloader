@@ -173,6 +173,7 @@ def download_all_click(save_dir):
     
 
 def tab_load():
+    print("loading email tab")
     get_email_list()
     return f""
 
@@ -204,7 +205,7 @@ def get_email_tab():
                               inputs=[msg_code],
                               outputs=[info])
 
-    tab.select(fn=tab_load, outputs=[info])
+    # tab.select(fn=tab_load, outputs=[info])
     download_all_btn.click(fn=download_all_click,
                            inputs=[path],
                            outputs=[info])

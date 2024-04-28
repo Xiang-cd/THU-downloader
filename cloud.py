@@ -29,6 +29,7 @@ global_list_data = []
 use_coroutine = True
 
 def get_repos(progress=gr.Progress(track_tqdm=True)):
+    print("loading cloud tab")
     # 刚进入tab时加载所有的仓库
     global global_repos
     response = requests.get("https://cloud.tsinghua.edu.cn/api/v2.1/repos/?type=mine", cookies=shared.cookies)
@@ -212,7 +213,7 @@ def get_cloud_tab():
         select_table = gr.HTML()
         subset_down_load_btn = gr.Button("选择下载")
         
-        cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
+        # cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
 
         select_all.click(fn=functools.partial(select_all_click, True),
                          outputs=[select_table])
