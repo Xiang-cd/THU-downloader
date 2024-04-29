@@ -213,7 +213,7 @@ def get_cloud_tab():
         select_table = gr.HTML()
         subset_down_load_btn = gr.Button("选择下载")
         
-        # cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
+        cloud_tab.select(fn=get_repos, inputs=[], outputs=[cloud_info, select_table])
 
         select_all.click(fn=functools.partial(select_all_click, True),
                          outputs=[select_table])

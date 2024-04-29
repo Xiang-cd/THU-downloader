@@ -35,6 +35,7 @@ def login(username, password, progress=gr.Progress(track_tqdm=True)):
 
         if res_cloud.status_code == 200:
             shared.cookies = s.cookies
+            print(shared.cookies)
             return "登录成功"
         else:
             return "清华云盘登录失败, 请检查用户名密码"
