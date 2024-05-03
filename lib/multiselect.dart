@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // This widget is reusable
 class MultiSelect extends StatefulWidget {
   final List<String> items;
-  const MultiSelect({Key? key, required this.items}) : super(key: key);
+  const MultiSelect({super.key, required this.items});
 
   @override
   State<StatefulWidget> createState() => _MultiSelectState();
@@ -12,7 +12,7 @@ class MultiSelect extends StatefulWidget {
 
 class _MultiSelectState extends State<MultiSelect> {
   // this variable holds the selected items
-  final List<int> selectedIdex = [];
+  List<int> selectedIdex = [];
 // This function is triggered when a checkbox is checked or unchecked
   void _itemChange(int itemValue, bool isSelected) {
     setState(() {
@@ -23,6 +23,7 @@ class _MultiSelectState extends State<MultiSelect> {
       }
     });
   }
+
 
   @override
   Widget build(BuildContext context) {

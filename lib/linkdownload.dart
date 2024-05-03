@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_thu_dowloader/multiselect.dart';
+import 'dart:io';
+
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
 class LinkDownload extends StatefulWidget {
   const LinkDownload({super.key});
@@ -20,6 +22,51 @@ class LinkDownload extends StatefulWidget {
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
   final linkController = TextEditingController();
+  MultiSelect multi_select = MultiSelect(items: []);
+  String? getShareKey(String shareLink) {
+    final RegExp regExp = RegExp(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)");
+    final Match? match = regExp.firstMatch(shareLink);
+
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1);
+    }
+    return null;
+  }
+
+  void _showMyDialog(BuildContext context, String title, String content) {
+    // 创建一个简单的对话框
+    AlertDialog alert = AlertDialog(
+      title: Text(title),
+      content: Text(content),
+      actions: <Widget>[
+        TextButton(
+          child: Text('ok'),
+          onPressed: () {
+            // 这里可以执行一些操作
+            print('用户点击了确认');
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+
+    // 展示对话框
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
+  Future<void> _fetchData() async {
+    // 从网络获取数据
+    final response = await HttpClient().getUrl(Uri.parse('https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/'));
+    final request = await response.close();
+    // final data = await request.transform(Utf8Decoder()).join();
+    // print(data);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,13 +110,26 @@ class _LinkDownload extends State<LinkDownload> {
                     onPressed: () {
                       setState(() {
                         currentLink = linkController.text;
+                        multi_select = MultiSelect(items: ["1", "2", "3"]);
                       });
+                      final shareKey = getShareKey(currentLink);
+                      if (shareKey != null) {
+                        final downloadLink =
+                            'https://cloud.tsinghua.edu.cn/d/' + shareKey;
+                        print(downloadLink);
+                        // open the download link in the browser
+                        // Process.run('open', [downloadLink]);
+                      } else {
+                        // alert the user that the link is invalid
+                        print('Invalid link');
+                        _showMyDialog(context, 'Invalid link', 'Please enter a valid link');
+                      }
                     },
                     child: Text('parse link')),
-                Container(
-                  height: 200,
-                  child: MultiSelect(items: ["oks", "dod", "ddd", "ddd", "ddd", "ddd"])
-                )
+                Row(
+                  children: [],
+                ),
+                Container(height: 300, child: multi_select)
               ],
             ),
           ),
