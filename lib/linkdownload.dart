@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-
+import 'package:flutter_thu_dowloader/multiselect.dart';
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
 class LinkDownload extends StatefulWidget {
   const LinkDownload({super.key});
@@ -18,12 +17,10 @@ class LinkDownload extends StatefulWidget {
   State<LinkDownload> createState() => _LinkDownload();
 }
 
-
-
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
   final linkController = TextEditingController();
-  
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,7 +47,6 @@ class _LinkDownload extends State<LinkDownload> {
                   currentLink,
                   style: theme.textTheme.displayMedium,
                 ),
-
                 TextField(
                   controller: linkController,
                   decoration: InputDecoration(
@@ -70,6 +66,10 @@ class _LinkDownload extends State<LinkDownload> {
                       });
                     },
                     child: Text('parse link')),
+                Container(
+                  height: 200,
+                  child: MultiSelect(items: ["oks", "dod", "ddd", "ddd", "ddd", "ddd"])
+                )
               ],
             ),
           ),
