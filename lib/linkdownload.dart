@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_thu_dowloader/multiselect.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
 class LinkDownload extends StatefulWidget {
@@ -42,8 +43,6 @@ class _LinkDownload extends State<LinkDownload> {
         TextButton(
           child: Text('ok'),
           onPressed: () {
-            // 这里可以执行一些操作
-            print('用户点击了确认');
             Navigator.of(context).pop();
           },
         ),
@@ -60,11 +59,21 @@ class _LinkDownload extends State<LinkDownload> {
   }
 
   Future<void> _fetchData() async {
-    // 从网络获取数据
-    final response = await HttpClient().getUrl(Uri.parse('https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/'));
-    final request = await response.close();
-    // final data = await request.transform(Utf8Decoder()).join();
-    // print(data);
+    setState(() {
+      currentLink = linkController.text;
+      multi_select = MultiSelect(items: ["1", "2", "3"]);
+    });
+    final shareKey = getShareKey(currentLink);
+    if (shareKey != null) {
+      final response = await http.get(Uri.parse(currentLink));
+      print(response.body);
+      // open the download link in the browser
+      // Process.run('open', [downloadLink]);
+    } else {
+      // alert the user that the link is invalid
+      print('Invalid link');
+      _showMyDialog(context, 'Invalid link', 'Please enter a valid link');
+    }
   }
 
 
@@ -107,24 +116,7 @@ class _LinkDownload extends State<LinkDownload> {
                   ),
                 ),
                 ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        currentLink = linkController.text;
-                        multi_select = MultiSelect(items: ["1", "2", "3"]);
-                      });
-                      final shareKey = getShareKey(currentLink);
-                      if (shareKey != null) {
-                        final downloadLink =
-                            'https://cloud.tsinghua.edu.cn/d/' + shareKey;
-                        print(downloadLink);
-                        // open the download link in the browser
-                        // Process.run('open', [downloadLink]);
-                      } else {
-                        // alert the user that the link is invalid
-                        print('Invalid link');
-                        _showMyDialog(context, 'Invalid link', 'Please enter a valid link');
-                      }
-                    },
+                    onPressed: () => _fetchData(),
                     child: Text('parse link')),
                 Row(
                   children: [],
