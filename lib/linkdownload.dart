@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_thu_dowloader/multiselect.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
@@ -13,6 +15,11 @@ class LinkDownload extends StatefulWidget {
 
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
+  String _infoMessage = '';
+  static const downloadUrlTemplate = 'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}&dl=1';
+  static const rdownloadUrlTemplate = 'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}';
+  static const direntUrlTemplate = 'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
+
   final linkController = TextEditingController();
   bool canDownload = true;
   MultiSelect multi_select = MultiSelect(items: []);
@@ -51,15 +58,40 @@ class _LinkDownload extends State<LinkDownload> {
   }
 
   Future<void> _fetchData() async {
-    setState(() {
-      currentLink = linkController.text;
-      multi_select = MultiSelect(items: ["1", "2", "3"]);
-    });
-    final shareKey = getShareKey(currentLink);
+    // fetch basic info from the share link
+    final shareKey = getShareKey(linkController.text);
     if (shareKey != null) {
-      final response = await http.get(Uri.parse(currentLink));
-      canDownload = RegExp(r'canDownload: (.+?),').firstMatch(response.body)?.group(1) == 'true';
+      final response = await http.get(Uri.parse(linkController.text));
+      canDownload =
+          RegExp(r'canDownload: (.+?),').firstMatch(response.body)?.group(1) ==
+              'true';
+
+      if (response.statusCode == 404) {
+        setState(() {
+          _infoMessage = '内容不存在, T^T, 看看是不是链接输错了？';
+        }); return;
+      } else if (response.statusCode == 500) {
+        setState(() {
+          _infoMessage = '服务暂时不可用，请稍后再试';
+        }); return;
+      }
+
       print(canDownload);
+      final direntUrl = direntUrlTemplate.replaceAll('{shareId}', shareKey).replaceAll('{path}', '/');
+      final direntResponse = await http.get(Uri.parse(direntUrl));
+      if (direntResponse.statusCode != 200) {
+        setState(() {
+          _infoMessage = '获取文件列表失败，请稍后再试';
+        }); return;
+      }
+      final direntJsonList = json.decode(direntResponse.body)['dirent_list'] ?? [];
+      print(direntJsonList);
+
+      setState(() {
+        currentLink = linkController.text;
+        multi_select = MultiSelect(items: direntJsonList.map((e) => e['file_name']).whereType<String>().toList());
+      });
+
       // open the download link in the browser
       // Process.run('open', [downloadLink]);
     } else {
@@ -68,7 +100,6 @@ class _LinkDownload extends State<LinkDownload> {
       _showMyDialog(context, 'Invalid link', 'Please enter a valid link');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +123,7 @@ class _LinkDownload extends State<LinkDownload> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Text(_infoMessage, style: theme.textTheme.displayMedium),
                 Text(
                   currentLink,
                   style: theme.textTheme.displayMedium,
@@ -109,12 +141,11 @@ class _LinkDownload extends State<LinkDownload> {
                   ),
                 ),
                 ElevatedButton(
-                    onPressed: () => _fetchData(),
-                    child: Text('parse link')),
+                    onPressed: () => _fetchData(), child: Text('parse link')),
                 Row(
                   children: [],
                 ),
-                Container(height: 300, child: multi_select)
+                Expanded(child: multi_select)
               ],
             ),
           ),
