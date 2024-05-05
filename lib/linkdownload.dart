@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_thu_dowloader/multiselect.dart';
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -88,7 +89,6 @@ class _LinkDownload extends State<LinkDownload> {
         return;
       }
 
-      print(canDownload);
       final direntUrl = direntUrlTemplate
           .replaceAll('{shareId}', shareKey)
           .replaceAll('{path}', '/');
@@ -101,7 +101,6 @@ class _LinkDownload extends State<LinkDownload> {
       }
       final direntJsonList =
           json.decode(direntResponse.body)['dirent_list'] ?? [];
-      print(direntJsonList);
 
       setState(() {
         currentLink = linkController.text;
@@ -126,6 +125,17 @@ class _LinkDownload extends State<LinkDownload> {
       print('Invalid link');
       _showMyDialog(context, 'Invalid link', 'Please enter a valid link');
     }
+  }
+
+  Future<void> _downloadSelected() async {
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    print(selectedDirectory);
+    print(selectedIndex);
+    if (selectedDirectory == null) {
+        print('No directory selected');
+        return;
+    }
+
   }
 
   @override
@@ -171,7 +181,7 @@ class _LinkDownload extends State<LinkDownload> {
                         onPressed: () => _fetchData(),
                         child: Text('parse link')),
                     ElevatedButton(
-                        onPressed: () => {print(selectedIndex)}, child: Text('download selected')),
+                        onPressed: () => _downloadSelected(), child: Text('download selected')),
                   ],
                 ),
                 SizedBox(height: 20),
