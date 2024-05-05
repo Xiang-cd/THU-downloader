@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
 
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
 
@@ -19,7 +18,6 @@ class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
   String shareKey = '';
   String _infoMessage = '';
-  final _dio = Dio();
   static const direntUrlTemplate =
       'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
   static const downloadUrlTemplate =
@@ -206,6 +204,9 @@ class _LinkDownload extends State<LinkDownload> {
     } else {
       downloadSelected(selectedIndex, selectedDirectory);
     }
+    setState(() {
+      _infoMessage = 'all selected files Download success';
+    });
   }
 
   @override
