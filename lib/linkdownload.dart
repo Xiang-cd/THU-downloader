@@ -16,12 +16,20 @@ class LinkDownload extends StatefulWidget {
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
   String _infoMessage = '';
-  static const downloadUrlTemplate = 'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}&dl=1';
-  static const rdownloadUrlTemplate = 'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}';
-  static const direntUrlTemplate = 'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
+  static const downloadUrlTemplate =
+      'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}&dl=1';
+  static const rdownloadUrlTemplate =
+      'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}';
+  static const direntUrlTemplate =
+      'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
 
+  List<String> items = [];
+  List<int> selectedIdex = [];
   final linkController = TextEditingController();
   bool canDownload = true;
+
+
+
   MultiSelect multi_select = MultiSelect(items: []);
   String? getShareKey(String shareLink) {
     final RegExp regExp = RegExp(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)");
@@ -69,27 +77,40 @@ class _LinkDownload extends State<LinkDownload> {
       if (response.statusCode == 404) {
         setState(() {
           _infoMessage = '内容不存在, T^T, 看看是不是链接输错了？';
-        }); return;
+        });
+        return;
       } else if (response.statusCode == 500) {
         setState(() {
           _infoMessage = '服务暂时不可用，请稍后再试';
-        }); return;
+        });
+        return;
       }
 
       print(canDownload);
-      final direntUrl = direntUrlTemplate.replaceAll('{shareId}', shareKey).replaceAll('{path}', '/');
+      final direntUrl = direntUrlTemplate
+          .replaceAll('{shareId}', shareKey)
+          .replaceAll('{path}', '/');
       final direntResponse = await http.get(Uri.parse(direntUrl));
       if (direntResponse.statusCode != 200) {
         setState(() {
           _infoMessage = '获取文件列表失败，请稍后再试';
-        }); return;
+        });
+        return;
       }
-      final direntJsonList = json.decode(direntResponse.body)['dirent_list'] ?? [];
+      final direntJsonList =
+          json.decode(direntResponse.body)['dirent_list'] ?? [];
       print(direntJsonList);
 
       setState(() {
         currentLink = linkController.text;
-        multi_select = MultiSelect(items: direntJsonList.map((e) => e['file_name']).whereType<String>().toList());
+        items = direntJsonList
+            .map((e) => e['file_name'])
+            .whereType<String>()
+            .toList();
+        multi_select = MultiSelect(items: items);
+        _infoMessage = canDownload
+            ? 'parse success, can download'
+            : 'parse success, preview only mode';
       });
 
       // open the download link in the browser
@@ -124,10 +145,6 @@ class _LinkDownload extends State<LinkDownload> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(_infoMessage, style: theme.textTheme.displayMedium),
-                Text(
-                  currentLink,
-                  style: theme.textTheme.displayMedium,
-                ),
                 TextField(
                   controller: linkController,
                   decoration: InputDecoration(
@@ -140,11 +157,19 @@ class _LinkDownload extends State<LinkDownload> {
                     ),
                   ),
                 ),
-                ElevatedButton(
-                    onPressed: () => _fetchData(), child: Text('parse link')),
+                // select path to download
                 Row(
-                  children: [],
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    ElevatedButton(
+                        onPressed: () => _fetchData(),
+                        child: Text('parse link')),
+                    ElevatedButton(
+                        onPressed: () => {}, child: Text('download selected')),
+                  ],
                 ),
+                SizedBox(height: 20),
+
                 Expanded(child: multi_select)
               ],
             ),
