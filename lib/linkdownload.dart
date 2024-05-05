@@ -24,13 +24,15 @@ class _LinkDownload extends State<LinkDownload> {
       'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
 
   List<String> items = [];
-  List<int> selectedIdex = [];
+  List<int> selectedIndex = [];
   final linkController = TextEditingController();
   bool canDownload = true;
 
 
-
-  MultiSelect multi_select = MultiSelect(items: []);
+  MultiSelect multi_select = MultiSelect(
+    items: [],
+    onSelectionChanged: (List<int> selected) {},
+  );
   String? getShareKey(String shareLink) {
     final RegExp regExp = RegExp(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)");
     final Match? match = regExp.firstMatch(shareLink);
@@ -107,7 +109,11 @@ class _LinkDownload extends State<LinkDownload> {
             .map((e) => e['file_name'])
             .whereType<String>()
             .toList();
-        multi_select = MultiSelect(items: items);
+        multi_select = MultiSelect(items: items, onSelectionChanged: (List<int> selected) {
+          setState(() {
+            selectedIndex = selected;
+          });
+        });
         _infoMessage = canDownload
             ? 'parse success, can download'
             : 'parse success, preview only mode';
@@ -165,7 +171,7 @@ class _LinkDownload extends State<LinkDownload> {
                         onPressed: () => _fetchData(),
                         child: Text('parse link')),
                     ElevatedButton(
-                        onPressed: () => {}, child: Text('download selected')),
+                        onPressed: () => {print(selectedIndex)}, child: Text('download selected')),
                   ],
                 ),
                 SizedBox(height: 20),

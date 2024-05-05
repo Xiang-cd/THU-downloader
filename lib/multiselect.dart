@@ -6,7 +6,8 @@ import 'package:provider/provider.dart';
 // This widget is reusable
 class MultiSelect extends StatefulWidget {
   final List<String> items;
-  MultiSelect({super.key, required this.items});
+  final ValueChanged<List<int>> onSelectionChanged; // Callback function
+  MultiSelect({super.key, required this.items, required this.onSelectionChanged});
 
 
   @override
@@ -24,16 +25,19 @@ class _MultiSelectState extends State<MultiSelect> {
       } else {
         selectedIdex.remove(itemValue);
       }
+      widget.onSelectionChanged(selectedIdex);
     });
   }
 
   void _selectAll() => setState(() {
         selectedIdex =
             List<int>.generate(widget.items.length, (index) => index);
+            widget.onSelectionChanged(selectedIdex);
       });
 
   void _deselectAll() => setState(() {
         selectedIdex = [];
+        widget.onSelectionChanged(selectedIdex);
       });
 
   @override
