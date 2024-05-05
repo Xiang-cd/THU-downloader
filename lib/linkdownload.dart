@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_thu_dowloader/multiselect.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 // https://cloud.tsinghua.edu.cn/d/a78bffdbc2e9453cbc9b/
+
 class LinkDownload extends StatefulWidget {
   const LinkDownload({super.key});
 
@@ -16,32 +17,92 @@ class LinkDownload extends StatefulWidget {
 
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
+  String shareKey = '';
   String _infoMessage = '';
+  final _dio = Dio();
+  static const direntUrlTemplate =
+      'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
   static const downloadUrlTemplate =
       'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}&dl=1';
   static const rdownloadUrlTemplate =
       'https://cloud.tsinghua.edu.cn/d/{shareId}/files/?p={filePath}';
-  static const direntUrlTemplate =
-      'https://cloud.tsinghua.edu.cn/api/v2.1/share-links/{shareId}/dirents/?path={path}';
 
   List<String> items = [];
   List<int> selectedIndex = [];
+  List itemDetails = [];
   final linkController = TextEditingController();
   bool canDownload = true;
 
+  Future<void> downloadFile(Map d, String savePath) async {
+    String fileName = d['file_name'];
+    final filePath = '$savePath/$fileName';
+    print('Downloading $filePath');
+    print(downloadUrlTemplate
+        .replaceAll('{shareId}', shareKey)
+        .replaceAll('{filePath}', Uri.encodeComponent(d['file_path'])));
+    print(downloadUrlTemplate
+        .replaceAll('{shareId}', shareKey)
+        .replaceAll('{filePath}', d['file_path']));
+    final response = await http.get(Uri.parse(downloadUrlTemplate
+        .replaceAll('{shareId}', shareKey)
+        .replaceAll('{filePath}', Uri.encodeComponent(d['file_path']))));
+
+    await File(filePath).writeAsBytes(response.bodyBytes);
+    print('Download $filePath success');
+  }
+
+  Future<void> createDir(String dirPath) async {
+    final dir = Directory(dirPath);
+    await dir.create(recursive: true);
+  }
+
+  Future<void> downloadDir(Map d, String savePath) async {
+    final dirPath = '$savePath/${d['folder_name']}';
+    print('Creating folder: $dirPath');
+    await createDir(dirPath);
+
+    final response = await http.get(Uri.parse(direntUrlTemplate
+        .replaceAll('{shareId}', shareKey)
+        .replaceAll('{path}', Uri.encodeComponent(d['folder_path']))));
+
+    final List<dynamic> contentList = json.decode(response.body)['dirent_list'];
+    // 递归下载文件夹内容
+    for (var item in contentList) {
+      if (item['is_dir']) {
+        await downloadDir(item, savePath);
+      } else {
+        await downloadFile(item, savePath);
+      }
+    }
+  }
+
+  Future<void> downloadSelected(
+      List<int> selectedIndex, String savePath) async {
+    final selectedContentList = itemDetails
+        .where((e) => selectedIndex.contains(itemDetails.indexOf(e)))
+        .toList();
+
+    for (var d in selectedContentList) {
+      if (d['is_dir']) {
+        await downloadDir(d, savePath);
+      } else {
+        await downloadFile(d, savePath);
+      }
+    }
+  }
 
   MultiSelect multi_select = MultiSelect(
     items: [],
     onSelectionChanged: (List<int> selected) {},
   );
-  String? getShareKey(String shareLink) {
+  String getShareKey(String shareLink) {
     final RegExp regExp = RegExp(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)");
     final Match? match = regExp.firstMatch(shareLink);
 
     if (match != null && match.groupCount >= 1) {
-      return match.group(1);
+      return match.group(1)!;
     }
-    return null;
+    return '';
   }
 
   void _showMyDialog(BuildContext context, String title, String content) {
@@ -70,8 +131,8 @@ class _LinkDownload extends State<LinkDownload> {
 
   Future<void> _fetchData() async {
     // fetch basic info from the share link
-    final shareKey = getShareKey(linkController.text);
-    if (shareKey != null) {
+    shareKey = getShareKey(linkController.text);
+    if (shareKey != '') {
       final response = await http.get(Uri.parse(linkController.text));
       canDownload =
           RegExp(r'canDownload: (.+?),').firstMatch(response.body)?.group(1) ==
@@ -103,16 +164,19 @@ class _LinkDownload extends State<LinkDownload> {
           json.decode(direntResponse.body)['dirent_list'] ?? [];
 
       setState(() {
+        itemDetails = direntJsonList;
         currentLink = linkController.text;
         items = direntJsonList
             .map((e) => e['file_name'])
             .whereType<String>()
             .toList();
-        multi_select = MultiSelect(items: items, onSelectionChanged: (List<int> selected) {
-          setState(() {
-            selectedIndex = selected;
-          });
-        });
+        multi_select = MultiSelect(
+            items: items,
+            onSelectionChanged: (List<int> selected) {
+              setState(() {
+                selectedIndex = selected;
+              });
+            });
         _infoMessage = canDownload
             ? 'parse success, can download'
             : 'parse success, preview only mode';
@@ -132,10 +196,16 @@ class _LinkDownload extends State<LinkDownload> {
     print(selectedDirectory);
     print(selectedIndex);
     if (selectedDirectory == null) {
-        print('No directory selected');
-        return;
+      print('No directory selected');
+      return;
     }
-
+    final shareKey = getShareKey(currentLink);
+    if (shareKey == '') {
+      print('Invalid link');
+      return;
+    } else {
+      downloadSelected(selectedIndex, selectedDirectory);
+    }
   }
 
   @override
@@ -181,7 +251,8 @@ class _LinkDownload extends State<LinkDownload> {
                         onPressed: () => _fetchData(),
                         child: Text('parse link')),
                     ElevatedButton(
-                        onPressed: () => _downloadSelected(), child: Text('download selected')),
+                        onPressed: () => _downloadSelected(),
+                        child: Text('download selected')),
                   ],
                 ),
                 SizedBox(height: 20),
