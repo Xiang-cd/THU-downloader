@@ -7,15 +7,6 @@ import 'package:http/http.dart' as http;
 class LinkDownload extends StatefulWidget {
   const LinkDownload({super.key});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   State<LinkDownload> createState() => _LinkDownload();
 }
@@ -23,6 +14,7 @@ class LinkDownload extends StatefulWidget {
 class _LinkDownload extends State<LinkDownload> {
   String currentLink = '';
   final linkController = TextEditingController();
+  bool canDownload = true;
   MultiSelect multi_select = MultiSelect(items: []);
   String? getShareKey(String shareLink) {
     final RegExp regExp = RegExp(r"https://cloud\.tsinghua\.edu\.cn/d/(\w+)");
@@ -66,7 +58,8 @@ class _LinkDownload extends State<LinkDownload> {
     final shareKey = getShareKey(currentLink);
     if (shareKey != null) {
       final response = await http.get(Uri.parse(currentLink));
-      print(response.body);
+      canDownload = RegExp(r'canDownload: (.+?),').firstMatch(response.body)?.group(1) == 'true';
+      print(canDownload);
       // open the download link in the browser
       // Process.run('open', [downloadLink]);
     } else {
