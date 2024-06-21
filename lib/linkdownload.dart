@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_thu_dowloader/multiselect.dart';
+import 'multiselect.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'main.dart';
-import 'package:provider/provider.dart';
 
 
 class WelcomePage extends StatelessWidget {
