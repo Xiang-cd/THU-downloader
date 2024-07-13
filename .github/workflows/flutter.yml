@@ -22,3 +22,8 @@ jobs:
         with:
           channel: stable
       - run: cd flutter_app && flutter build windows
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-win
+          path: flutter_app\build\windows\x64\runner\Release\flutter_thu_dowloader.exe
