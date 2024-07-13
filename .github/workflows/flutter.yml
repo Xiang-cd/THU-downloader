@@ -10,4 +10,4 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: flutter build macos
+      - run: cd flutter_app && flutter build macos
