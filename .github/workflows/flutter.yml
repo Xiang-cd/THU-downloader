@@ -1,8 +1,19 @@
 name: flutter test
 on: [push]
 jobs:
-  main:
-    runs-on: macos-latest
+  # main:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+  #     - name: Set up Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         channel: stable
+  #     - run: cd flutter_app && flutter build macos
+
+  win:
+    runs-on: windows-latest
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -10,4 +21,4 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - run: cd flutter_app && flutter build macos
+      - run: cd flutter_app && flutter build windows
