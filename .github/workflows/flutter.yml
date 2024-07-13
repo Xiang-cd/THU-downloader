@@ -1,16 +1,18 @@
 name: flutter test
 on: [push]
 jobs:
-  # main:
-  #   runs-on: macos-latest
-  #   steps:
-  #     - name: Clone repository
-  #       uses: actions/checkout@v4
-  #     - name: Set up Flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         channel: stable
-  #     - run: cd flutter_app && flutter build macos
+  main:
+    runs-on: macos-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: cd flutter_app && flutter build macos --release --no-codesign
+      
 
   win:
     runs-on: windows-latest
@@ -70,4 +72,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-linux
-          path: flutter_app\build\linux\x64\runner\Release\flutter_thu_dowloader
+          path: flutter_app/build/linux/x64/release/bundle/thu_downloader
