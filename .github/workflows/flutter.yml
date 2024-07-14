@@ -16,6 +16,9 @@ jobs:
 
   win:
     runs-on: windows-latest
+    env:
+      WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
+      WINDOWS_ZIP_NAME: thu_downloader.zip
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -28,10 +31,17 @@ jobs:
       - working-directory: flutter_app
         run: flutter build windows --release && ls build\windows\x64\runner\Release
       
+      - name: Archive Asset
+        uses: vimtor/action-zip@v1
+        with:
+          files: ${{ env.WINDOWS_APP_RELEASE_PATH }}\
+          dest: ${{ env.WINDOWS_APP_RELEASE_PATH }}\${{ env.WINDOWS_ZIP_NAME }}
+      
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-win
-          path: flutter_app\build\windows\x64\runner\Release\flutter_thu_dowloader.exe
+          path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\${{ env.WINDOWS_ZIP_NAME }}
+
       - name: Print outputs
         shell: bash
         run: |
