@@ -3,6 +3,9 @@ on: [push]
 jobs:
   mac:
     runs-on: macos-latest
+    env:
+      MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
+      
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -13,6 +16,14 @@ jobs:
           cache: true
       - working-directory: flutter_app
         run: flutter build macos  && ls build/macos/Build/Products/Release/
+      
+      - name: Codesign executable
+        run: |
+          echo ${{ secrets.MACOS_CERTIFICATE }} | base64 --decode > certificate.p12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-mac
+          path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
 
 
   win:
