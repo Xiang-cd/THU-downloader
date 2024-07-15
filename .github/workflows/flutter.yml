@@ -17,13 +17,17 @@ jobs:
       - working-directory: flutter_app
         run: flutter build macos  && ls build/macos/Build/Products/Release/
       
-      - name: Codesign executable
-        run: |
-          echo ${{ secrets.MACOS_CERTIFICATE }} | base64 --decode > certificate.p12
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-mac
           path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
+
+      - name: Codesign executable
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
 
 
   win:
