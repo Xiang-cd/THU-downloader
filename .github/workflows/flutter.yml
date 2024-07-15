@@ -39,7 +39,7 @@ jobs:
           dest: ${{ env.WINDOWS_APP_RELEASE_PATH }}\${{ env.WINDOWS_ZIP_NAME }}
       
       - name: Copy installer config & icon file
-        working-directory: frontend
+        working-directory: flutter_app
         run: |
             cp scripts/windows_installer/* ../${{ env.WINDOWS_APP_RELEASE_PATH }}
       
