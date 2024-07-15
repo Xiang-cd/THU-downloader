@@ -1,7 +1,7 @@
 name: flutter test
 on: [push]
 jobs:
-  main:
+  mac:
     runs-on: macos-latest
     steps:
       - name: Clone repository
@@ -11,7 +11,8 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: cd flutter_app && flutter build macos --release
+      - working-directory: flutter_app
+        run: flutter build macos  && ls build/macos/Build/Products/Release/
 
 
   win:
