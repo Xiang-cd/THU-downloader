@@ -19,6 +19,7 @@ jobs:
     env:
       WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
       WINDOWS_ZIP_NAME: thu_downloader.zip
+      WINDOWS_INSTALLER_NAME: thu_downloader-${{ github.ref_name }}-windows-x86_64
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -37,10 +38,20 @@ jobs:
           files: ${{ env.WINDOWS_APP_RELEASE_PATH }}\
           dest: ${{ env.WINDOWS_APP_RELEASE_PATH }}\${{ env.WINDOWS_ZIP_NAME }}
       
+      - name: Copy installer config & icon file
+        working-directory: frontend
+        run: |
+            cp scripts/windows_installer/* ../${{ env.WINDOWS_APP_RELEASE_PATH }}
+      
+      - name: Build installer executable
+        working-directory: ${{ env.WINDOWS_APP_RELEASE_PATH }}
+        run: |
+          iscc /F${{ env.WINDOWS_INSTALLER_NAME }} inno_setup_config.iss /DAppVersion=${{ github.ref_name }}
+      
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-win
-          path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\${{ env.WINDOWS_ZIP_NAME }}
+          path: ${{ env.WINDOWS_APP_RELEASE_PATH }}
 
       - name: Print outputs
         shell: bash
