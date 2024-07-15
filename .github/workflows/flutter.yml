@@ -48,7 +48,7 @@ jobs:
         working-directory: ${{ env.WINDOWS_APP_RELEASE_PATH }}
         run: |
           iscc /F${{ env.WINDOWS_INSTALLER_NAME }} inno_setup_config.iss /DAppVersion=0.0.1
-          ls build\windows\x64\runner\Release\Output
+          ls D:\a\THU-downloader\THU-downloader\flutter_app\build\windows\x64\runner\Release\Output
       
       - uses: actions/upload-artifact@v4
         with:
