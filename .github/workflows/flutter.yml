@@ -20,7 +20,7 @@ jobs:
     env:
       WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
       WINDOWS_ZIP_NAME: thu_downloader.zip
-      WINDOWS_INSTALLER_NAME: thu_downloader-${{ github.ref_name }}-windows-x86_64
+      WINDOWS_INSTALLER_NAME: thu_downloader-${{ github.ref_name }}-windows-x86_64-installer
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -48,23 +48,12 @@ jobs:
         working-directory: ${{ env.WINDOWS_APP_RELEASE_PATH }}
         run: |
           iscc /F${{ env.WINDOWS_INSTALLER_NAME }} inno_setup_config.iss /DAppVersion=0.0.1
-          ls D:\a\THU-downloader\THU-downloader\flutter_app\build\windows\x64\runner\Release\Output
       
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-win
-          path: ${{ env.WINDOWS_APP_RELEASE_PATH }}
+          path: ${{ env.WINDOWS_INSTALLER_NAME }}
 
-      - name: Print outputs
-        shell: bash
-        run: |
-          echo CACHE-PATH=${{ steps.flutter-action-win.outputs.CACHE-PATH }}
-          echo CACHE-KEY=${{ steps.flutter-action-win.outputs.CACHE-KEY }}
-          echo CHANNEL=${{ steps.flutter-action-win.outputs.CHANNEL }}
-          echo VERSION=${{ steps.flutter-action-win.outputs.VERSION }}
-          echo ARCHITECTURE=${{ steps.flutter-action-win.outputs.ARCHITECTURE }}
-          echo PUB-CACHE-PATH=${{ steps.flutter-action-win.outputs.PUB-CACHE-PATH }}
-          echo PUB-CACHE-KEY=${{ steps.flutter-action-win.outputs.PUB-CACHE-KEY }}
 
   linux:
     runs-on: ubuntu-latest
