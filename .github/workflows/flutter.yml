@@ -16,7 +16,7 @@ jobs:
           cache: true
       - working-directory: flutter_app
         run: flutter build macos  && ls build/macos/Build/Products/Release/
-          # --verify 
+
       - name: Codesign executable
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
@@ -48,6 +48,15 @@ jobs:
             --hdiutil-quiet \
             "$MACOS_APP_NAME.dmg" \
             "$MACOS_APP_NAME.app"
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.MACOS_APP_RELEASE_PATH }}/${{ env.MACOS_APP_NAME }}.dmg
+          asset_name: ${{ env.MACOS_APP_NAME }}.dmg
+          asset_content_type: application/octet-stream
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-mac
@@ -85,6 +94,15 @@ jobs:
         with:
           name: artifact-win
           path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\Output\${{ env.WINDOWS_INSTALLER_NAME }}.exe
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\Output\${{ env.WINDOWS_INSTALLER_NAME }}.exe
+          asset_name: ${{ env.WINDOWS_INSTALLER_NAME }}.exe
+          asset_content_type: application/octet-stream
 
 
   linux:
@@ -108,4 +126,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-linux
-          path: flutter_app/build/linux/x64/release/bundle/thu_downloader
+          path: flutter_app/build/linux/x64/release/bundle
