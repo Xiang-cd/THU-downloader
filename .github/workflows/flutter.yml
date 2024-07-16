@@ -5,7 +5,7 @@ jobs:
     runs-on: macos-latest
     env:
       MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
-      
+      MACOS_APP_NAME: thu_downloader
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -21,14 +21,39 @@ jobs:
         with:
           name: artifact-mac
           path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
-
+      
+          # --verify 
       - name: Codesign executable
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
+          MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
         run: |
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
-
+          security create-keychain -p $MACOS_PASSWD build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p $MACOS_PASSWD build.keychain
+          security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_PASSWD build.keychain
+          codesign --deep --force --verbose -s $MACOS_DENTITY ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
+      - name: Create a dmg
+        working-directory: ${{ env.MACOS_APP_RELEASE_PATH }}
+        run: |
+          echo "Install create-dmg"
+          brew install create-dmg
+          create-dmg \
+            --volname "$MACOS_APP_NAME" \
+            --window-pos 200 120 \
+            --window-size 800 529 \
+            --icon-size 130 \
+            --text-size 14 \
+            --icon "$MACOS_APP_NAME.app" 260 250 \
+            --hide-extension "$MACOS_APP_NAME.app" \
+            --app-drop-link 540 250 \
+            --hdiutil-quiet \
+            "$MACOS_APP_NAME.dmg" \
+            "$MACOS_APP_NAME.app"
 
   win:
     runs-on: windows-latest
@@ -81,17 +106,6 @@ jobs:
       
       - working-directory: flutter_app
         run: flutter build linux --release && ls build/linux/x64/release/bundle/
-
-      - name: Print outputs
-        shell: bash
-        run: |
-          echo CACHE-PATH=${{ steps.flutter-action-linux.outputs.CACHE-PATH }}
-          echo CACHE-KEY=${{ steps.flutter-action-linux.outputs.CACHE-KEY }}
-          echo CHANNEL=${{ steps.flutter-action-linux.outputs.CHANNEL }}
-          echo VERSION=${{ steps.flutter-action-linux.outputs.VERSION }}
-          echo ARCHITECTURE=${{ steps.flutter-action-linux.outputs.ARCHITECTURE }}
-          echo PUB-CACHE-PATH=${{ steps.flutter-action-linux.outputs.PUB-CACHE-PATH }}
-          echo PUB-CACHE-KEY=${{ steps.flutter-action-linux.outputs.PUB-CACHE-KEY }}
       
       - uses: actions/upload-artifact@v4
         with:
