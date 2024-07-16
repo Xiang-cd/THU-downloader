@@ -16,12 +16,6 @@ jobs:
           cache: true
       - working-directory: flutter_app
         run: flutter build macos  && ls build/macos/Build/Products/Release/
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact-mac
-          path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
-      
           # --verify 
       - name: Codesign executable
         env:
@@ -54,6 +48,10 @@ jobs:
             --hdiutil-quiet \
             "$MACOS_APP_NAME.dmg" \
             "$MACOS_APP_NAME.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact-mac
+          path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.dmg
 
   win:
     runs-on: windows-latest
