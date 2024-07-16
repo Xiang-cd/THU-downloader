@@ -3,6 +3,10 @@ on: [push]
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
     env:
       RELEASE_NOTES_PATH: /tmp/release_notes
     outputs:
