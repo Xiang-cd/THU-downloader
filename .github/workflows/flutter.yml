@@ -41,7 +41,7 @@ jobs:
     runs-on: macos-latest
     env:
       MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
-      MACOS_APP_NAME: thu_downloader${{ github.ref_name }}
+      MACOS_APP_NAME: thu_downloader
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -91,7 +91,7 @@ jobs:
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ${{ env.MACOS_APP_RELEASE_PATH }}/${{ env.MACOS_APP_NAME }}.dmg
-          asset_name: ${{ env.MACOS_APP_NAME }}.dmg
+          asset_name: ${{ env.MACOS_APP_NAME }}-${{ github.ref_name }}.dmg
           asset_content_type: application/octet-stream
       - uses: actions/upload-artifact@v4
         with:
@@ -107,7 +107,7 @@ jobs:
     env:
       WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
       WINDOWS_ZIP_NAME: thu_downloader.zip
-      WINDOWS_INSTALLER_NAME: thu_downloader-${{ github.ref_name }}-windows-x86_64-installer
+      WINDOWS_INSTALLER_NAME: thu_downloader-v${{ github.ref_name }}-windows-x86_64-installer
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -153,7 +153,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LINUX_APP_RELEASE_PATH: flutter_app/build/linux/x64/release/bundle
-      LINUX_APP_NAME: thu_downloader${{ github.ref_name }}_linux_archive
+      LINUX_APP_NAME: thu_downloader-v${{ github.ref_name }}_linux_archive
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -174,6 +174,12 @@ jobs:
         with:
           name: artifact-linux
           path: ${{ env.LINUX_APP_RELEASE_PATH }}
+      # zip release path
+      - name: zip Asset
+        uses: vimtor/action-zip@v1
+        with:
+          files: ${{ env.LINUX_APP_RELEASE_PATH }}\
+          dest: /tmp/${{ env.LINUX_APP_NAME }}.zip
       
       - name: Upload Asset
         uses: actions/upload-release-asset@v1
@@ -181,6 +187,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ env.LINUX_APP_RELEASE_PATH }}
+          asset_path: /tmp/${{ env.LINUX_APP_NAME }}.zip
           asset_name: ${{ env.LINUX_APP_NAME }}
           asset_content_type: application/octet-stream
