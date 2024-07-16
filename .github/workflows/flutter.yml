@@ -6,7 +6,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
     env:
       RELEASE_NOTES_PATH: /tmp/release_notes
     outputs:
@@ -33,6 +32,9 @@ jobs:
           
   mac:
     needs: create-release
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: macos-latest
     env:
       MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
@@ -95,6 +97,9 @@ jobs:
 
   win:
     needs: create-release
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: windows-latest
     env:
       WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
@@ -139,6 +144,9 @@ jobs:
 
   linux:
     needs: create-release
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
