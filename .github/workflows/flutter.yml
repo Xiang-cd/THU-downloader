@@ -1,5 +1,8 @@
-name: flutter test
-on: [push]
+name: flutter build and release
+on:
+  push:
+    tags:
+      - "*"
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -38,7 +41,7 @@ jobs:
     runs-on: macos-latest
     env:
       MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
-      MACOS_APP_NAME: thu_downloader
+      MACOS_APP_NAME: thu_downloader${{ github.ref_name }}
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -148,6 +151,9 @@ jobs:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    env:
+      LINUX_APP_RELEASE_PATH: flutter_app/build/linux/x64/release/bundle
+      LINUX_APP_NAME: thu_downloader${{ github.ref_name }}_linux_archive
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -167,4 +173,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: artifact-linux
-          path: flutter_app/build/linux/x64/release/bundle
+          path: ${{ env.LINUX_APP_RELEASE_PATH }}
+      
+      - name: Upload Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ env.LINUX_APP_RELEASE_PATH }}
+          asset_name: ${{ env.LINUX_APP_NAME }}
+          asset_content_type: application/octet-stream
