@@ -1,7 +1,33 @@
 name: flutter test
 on: [push]
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_NOTES_PATH: /tmp/release_notes
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build release notes
+        run: |
+          touch ${{ env.RELEASE_NOTES_PATH }}
+          cat CHANGELOG.md | sed -e '/./{H;$!d;}' -e "x;/##\ Version\ ${{ github.ref_name }}/"'!d;' >> ${{ env.RELEASE_NOTES_PATH }}
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: v${{ github.ref }}
+          body_path: ${{ env.RELEASE_NOTES_PATH }}
+          
   mac:
+    needs: create-release
     runs-on: macos-latest
     env:
       MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
@@ -53,6 +79,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ${{ env.MACOS_APP_RELEASE_PATH }}/${{ env.MACOS_APP_NAME }}.dmg
           asset_name: ${{ env.MACOS_APP_NAME }}.dmg
           asset_content_type: application/octet-stream
@@ -62,6 +89,7 @@ jobs:
           path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.dmg
 
   win:
+    needs: create-release
     runs-on: windows-latest
     env:
       WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
@@ -98,12 +126,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\Output\${{ env.WINDOWS_INSTALLER_NAME }}.exe
           asset_name: ${{ env.WINDOWS_INSTALLER_NAME }}.exe
           asset_content_type: application/octet-stream
 
 
   linux:
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
