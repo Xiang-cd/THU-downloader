@@ -18,6 +18,7 @@ jobs:
       - name: Build release notes
         run: |
           touch ${{ env.RELEASE_NOTES_PATH }}
+          echo ${{ github.ref_name }}
           cat CHANGELOG.md | sed -e '/./{H;$!d;}' -e "x;/##\ Version\ ${{ github.ref_name }}/"'!d;' >> ${{ env.RELEASE_NOTES_PATH }}
 
       - name: Create release
@@ -26,8 +27,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: v${{ github.ref }}
+          tag_name: ${{ github.ref_name }} # github.ref
+          release_name: v${{ github.ref_name }} # github.ref
           body_path: ${{ env.RELEASE_NOTES_PATH }}
           
   mac:
