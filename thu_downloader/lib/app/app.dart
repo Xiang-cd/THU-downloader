@@ -19,8 +19,55 @@ class THUDownloaderApp extends ConsumerWidget {
   }
 }
 
-class MainScreen extends StatelessWidget {
-  const MainScreen({super.key});
+class MainScreen extends StatefulWidget {
+  final Widget child;
+  
+  const MainScreen({super.key, required this.child});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
+
+  void _onDestinationSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    
+    switch (index) {
+      case 0:
+        context.go('/cloud-download');
+        break;
+      case 1:
+        context.go('/learn-download');
+        break;
+      case 2:
+        context.go('/settings');
+        break;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 根据当前路由更新选中的索引
+    final location = GoRouterState.of(context).uri.path;
+    switch (location) {
+      case '/cloud-download':
+        _selectedIndex = 0;
+        break;
+      case '/learn-download':
+        _selectedIndex = 1;
+        break;
+      case '/settings':
+        _selectedIndex = 2;
+        break;
+      default:
+        _selectedIndex = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,27 +90,13 @@ class MainScreen extends StatelessWidget {
                 label: Text('设置'),
               ),
             ],
-            selectedIndex: 0,
-            onDestinationSelected: (int index) {
-              switch (index) {
-                case 0:
-                  context.go('/cloud-download');
-                  break;
-                case 1:
-                  context.go('/learn-download');
-                  break;
-                case 2:
-                  context.go('/settings');
-                  break;
-              }
-            },
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onDestinationSelected,
           ),
           const VerticalDivider(thickness: 1, width: 1),
           // Main content area
           Expanded(
-            child: Center(
-              child: Text('Select a feature from the navigation rail'),
-            ),
+            child: widget.child,
           ),
         ],
       ),

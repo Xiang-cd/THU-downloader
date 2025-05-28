@@ -40,6 +40,9 @@ dependencies:
   shared_preferences: ^2.3.3
   freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
+  http: ^1.1.0
+  path: ^1.8.3
+  file_picker: ^8.1.2
 
 dev_dependencies:
   flutter_test:

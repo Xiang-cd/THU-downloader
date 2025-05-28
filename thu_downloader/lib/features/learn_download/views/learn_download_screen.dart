@@ -8,6 +8,7 @@ class LearnDownloadScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('网络学堂下载'),
+        automaticallyImplyLeading: false,
       ),
       body: const Center(
         child: Text('网络学堂下载功能开发中...'),
