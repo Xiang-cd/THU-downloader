@@ -22,6 +22,14 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   bool _isDownloading = false;
   String? _shareKey;
   bool _canDownload = false;
+  
+  // 下载进度相关变量
+  int _downloadedBytes = 0;
+  int _totalBytes = 0;
+  double _downloadProgress = 0.0;
+  String _currentFileName = '';
+  int _currentFileBytes = 0;
+  int _currentFileTotalBytes = 0;
 
   void _onSelectionChanged(List<FileTreeNode> selectedNodes) {
     setState(() {
@@ -164,6 +172,12 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
     setState(() {
       _isDownloading = true;
       _statusMessage = '正在下载到: $selectedDirectory';
+      _downloadedBytes = 0;
+      _totalBytes = DownloadService.calculateTotalSize(_selectedNodes);
+      _downloadProgress = 0.0;
+      _currentFileName = '';
+      _currentFileBytes = 0;
+      _currentFileTotalBytes = 0;
     });
 
     try {
@@ -178,6 +192,24 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
         onProgress: (message) {
           setState(() {
             _statusMessage = message;
+            // 从消息中提取当前文件名
+            if (message.startsWith('正在下载: ')) {
+              final parts = message.split(' ');
+              if (parts.length >= 2) {
+                _currentFileName = parts[1].split(' ')[0]; // 获取文件名（去掉百分比部分）
+              }
+            } else if (message.startsWith('下载完成: ')) {
+              _currentFileName = '';
+              _currentFileBytes = 0;
+              _currentFileTotalBytes = 0;
+            }
+          });
+        },
+        onProgressBytes: (downloadedBytes, totalBytes) {
+          setState(() {
+            _downloadedBytes = downloadedBytes;
+            _totalBytes = totalBytes;
+            _downloadProgress = totalBytes > 0 ? downloadedBytes / totalBytes : 0.0;
           });
         },
       );
@@ -185,12 +217,24 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
       setState(() {
         _isDownloading = false;
         _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目到: $selectedDirectory';
+        _downloadedBytes = 0;
+        _totalBytes = 0;
+        _downloadProgress = 0.0;
+        _currentFileName = '';
+        _currentFileBytes = 0;
+        _currentFileTotalBytes = 0;
       });
 
     } catch (e) {
       setState(() {
         _isDownloading = false;
         _statusMessage = '下载失败: ${e.toString()}';
+        _downloadedBytes = 0;
+        _totalBytes = 0;
+        _downloadProgress = 0.0;
+        _currentFileName = '';
+        _currentFileBytes = 0;
+        _currentFileTotalBytes = 0;
       });
       CloudDownloadLogger.error('下载失败: $e');
     }
@@ -257,24 +301,66 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                   color: _isDownloading ? Colors.orange[200]! : Colors.blue[200]!
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_isDownloading) ...[
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      _statusMessage,
-                      style: TextStyle(
-                        color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
+                  Row(
+                    children: [
+                      if (_isDownloading) ...[
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: Text(
+                          _statusMessage,
+                          style: TextStyle(
+                            color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
+                  
+                  // 下载进度条
+                  if (_isDownloading && _totalBytes > 0) ...[
+                    const SizedBox(height: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '下载进度: ${(_downloadProgress * 100).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '${DownloadService.formatSize(_downloadedBytes)} / ${DownloadService.formatSize(_totalBytes)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        LinearProgressIndicator(
+                          value: _downloadProgress,
+                          backgroundColor: Colors.orange[100],
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[600]!),
+                          minHeight: 6,
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

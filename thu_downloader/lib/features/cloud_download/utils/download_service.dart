@@ -11,17 +11,42 @@ class DownloadService {
     List<FileTreeNode> selectedNodes,
     String shareKey,
     String savePath,
-    {Function(String)? onProgress}
+    {Function(String)? onProgress,
+     Function(int downloadedBytes, int totalBytes)? onProgressBytes}
   ) async {
     try {
+      final totalBytes = calculateTotalSize(selectedNodes);
+      int completedBytes = 0; // 已完成文件的字节数
+      int currentFileDownloadedBytes = 0; // 当前文件已下载的字节数
+      
       CloudDownloadLogger.download('开始下载 ${selectedNodes.length} 个文件到: $savePath');
+      onProgressBytes?.call(0, totalBytes);
       
       for (var node in selectedNodes) {
-        await _downloadFile(node, shareKey, savePath, onProgress: onProgress);
+        currentFileDownloadedBytes = 0; // 重置当前文件进度
+        
+        await _downloadFile(
+          node, 
+          shareKey, 
+          savePath, 
+          onProgress: onProgress,
+          onFileDownloaded: (fileSize) {
+            completedBytes += fileSize;
+            currentFileDownloadedBytes = 0; // 文件完成后重置
+            onProgressBytes?.call(completedBytes, totalBytes);
+          },
+          onFileProgress: (currentFileBytes, totalFileBytes) {
+            currentFileDownloadedBytes = currentFileBytes;
+            // 总进度 = 已完成的文件字节数 + 当前文件已下载字节数
+            final totalDownloaded = completedBytes + currentFileDownloadedBytes;
+            onProgressBytes?.call(totalDownloaded, totalBytes);
+          }
+        );
       }
       
       CloudDownloadLogger.download('所有文件下载完成');
       onProgress?.call('所有文件下载完成');
+      onProgressBytes?.call(totalBytes, totalBytes);
     } catch (e) {
       CloudDownloadLogger.error('下载过程中发生错误: $e');
       rethrow;
@@ -33,7 +58,9 @@ class DownloadService {
     FileTreeNode fileNode,
     String shareKey,
     String savePath,
-    {Function(String)? onProgress}
+    {Function(String)? onProgress,
+     Function(int)? onFileDownloaded,
+     Function(int currentFileBytes, int totalFileBytes)? onFileProgress}
   ) async {
     try {
       // 从文件路径中提取目录结构和文件名
@@ -46,7 +73,10 @@ class DownloadService {
       CloudDownloadLogger.download('开始下载文件: ${fileNode.path} 到 $fullFilePath');
       
       final downloadUrl = CloudApiService.getDownloadUrl(shareKey, fileNode.path);
-      final response = await http.get(Uri.parse(downloadUrl));
+      
+      // 使用流式下载
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      final response = await request.send();
       
       if (response.statusCode != 200) {
         throw Exception('下载文件失败: ${fileNode.name}, 状态码: ${response.statusCode}');
@@ -56,8 +86,29 @@ class DownloadService {
       final file = File(fullFilePath);
       await file.parent.create(recursive: true);
       
-      // 写入文件
-      await file.writeAsBytes(response.bodyBytes);
+      // 流式写入文件并更新进度
+      final sink = file.openWrite();
+      int downloadedBytes = 0;
+      final totalBytes = fileNode.size;
+      
+      await for (final chunk in response.stream) {
+        sink.add(chunk);
+        downloadedBytes += chunk.length;
+        
+        // 更新当前文件的下载进度
+        onFileProgress?.call(downloadedBytes, totalBytes);
+        
+        // 可以在这里添加更详细的进度信息
+        if (totalBytes > 0) {
+          final progress = (downloadedBytes / totalBytes * 100).toStringAsFixed(1);
+          onProgress?.call('正在下载: ${fileNode.name} ($progress%)');
+        }
+      }
+      
+      await sink.close();
+      
+      // 通知文件下载完成
+      onFileDownloaded?.call(fileNode.size);
       
       CloudDownloadLogger.download('文件下载完成: ${fileNode.name} (${fileNode.formattedSize})');
       onProgress?.call('下载完成: ${fileNode.name}');
