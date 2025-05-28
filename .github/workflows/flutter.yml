@@ -130,30 +130,6 @@ jobs:
             "${{ matrix.asset-name }}" \
             "${{ env.APP_NAME }}.app"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.platform }}-build
-          path: |
-            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-
-  create-release:
-    needs: build-and-release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Extract version from tag
-        id: version
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
       - name: Extract release notes
         id: release_notes
         run: |
@@ -161,26 +137,25 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           NOTES=$(awk "/^## v${VERSION}$/{flag=1; next} /^## /{flag=0} flag" CHANGELOG.md)
           if [ -z "$NOTES" ]; then
-            NOTES="Release ${{ github.ref_name }}"
+            NOTES="Release ${{ github.ref_name }} for ${{ matrix.platform }}"
           fi
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create Release
+      - name: Upload and Release for ${{ matrix.platform }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: ${{ steps.release_notes.outputs.notes }}
           files: |
-            artifacts/**/*
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
