@@ -23,22 +23,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   String? _shareKey;
   bool _canDownload = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // 加载demo数据用于测试
-    _loadDemoData();
-  }
-
-  void _loadDemoData() {
-    setState(() {
-      _fileNodes = FileTreeNode.createDemoData();
-      _statusMessage = 'Demo数据已加载，可以测试文件树功能';
-      _shareKey = 'demo';
-      _canDownload = true;
-    });
-  }
-
   void _onSelectionChanged(List<FileTreeNode> selectedNodes) {
     setState(() {
       _selectedNodes = selectedNodes;
@@ -227,29 +211,16 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: (_isLoading || _isDownloading) ? null : _parseLink,
-                          icon: _isLoading 
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.search),
-                          label: Text(_isLoading ? '解析中...' : '解析链接'),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: (_isLoading || _isDownloading) ? null : _loadDemoData,
-                          icon: const Icon(Icons.data_object),
-                          label: const Text('加载Demo数据'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[300],
-                          ),
-                        ),
-                      ],
+                    ElevatedButton.icon(
+                      onPressed: (_isLoading || _isDownloading) ? null : _parseLink,
+                      icon: _isLoading 
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.search),
+                      label: Text(_isLoading ? '解析中...' : '解析链接'),
                     ),
                   ],
                 ),
