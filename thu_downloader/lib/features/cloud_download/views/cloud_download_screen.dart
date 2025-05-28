@@ -136,7 +136,24 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
     }
 
     // 选择下载目录
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    setState(() {
+      _statusMessage = '正在打开文件夹选择器...';
+    });
+    
+    String? selectedDirectory;
+    try {
+      selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: '选择下载目录',
+      );
+      CloudDownloadLogger.download('文件夹选择器返回: $selectedDirectory');
+    } catch (e) {
+      setState(() {
+        _statusMessage = '打开文件夹选择器失败: ${e.toString()}';
+      });
+      CloudDownloadLogger.error('文件夹选择器错误: $e');
+      return;
+    }
+    
     if (selectedDirectory == null) {
       setState(() {
         _statusMessage = '未选择下载目录';
@@ -146,7 +163,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
 
     setState(() {
       _isDownloading = true;
-      _statusMessage = '正在下载...';
+      _statusMessage = '正在下载到: $selectedDirectory';
     });
 
     try {
@@ -167,7 +184,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
 
       setState(() {
         _isDownloading = false;
-        _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目';
+        _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目到: $selectedDirectory';
       });
 
     } catch (e) {
