@@ -1,192 +1,185 @@
-name: flutter build and release
+name: Flutter Build and Release
+
 on:
   push:
     tags:
-      - "*"
+      - "v*"
+
+env:
+  APP_NAME: thu_downloader
+
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            build-command: flutter build linux --release
+            artifact-path: thu_downloader/build/linux/x64/release/bundle
+            asset-name: thu_downloader-${{ github.ref_name }}-linux-x64.tar.gz
+            setup-commands: |
+              sudo apt-get update -y
+              sudo apt-get install -y ninja-build libgtk-3-dev
+          - os: windows-latest
+            platform: windows
+            build-command: flutter build windows --release
+            artifact-path: thu_downloader\build\windows\x64\runner\Release
+            asset-name: thu_downloader-${{ github.ref_name }}-windows-x64-installer.exe
+            setup-commands: ""
+          - os: macos-latest
+            platform: macos
+            build-command: flutter build macos --release
+            artifact-path: thu_downloader/build/macos/Build/Products/Release
+            asset-name: thu_downloader-${{ github.ref_name }}-macos.dmg
+            setup-commands: ""
+
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
       pull-requests: write
-    env:
-      RELEASE_NOTES_PATH: /tmp/release_notes
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build release notes
+      - name: Extract version from tag
+        id: version
         run: |
-          touch ${{ env.RELEASE_NOTES_PATH }}
-          echo ${{ github.ref_name }}
-          cat CHANGELOG.md | sed -e '/./{H;$!d;}' -e "x;/##\ Version\ ${{ github.ref_name }}/"'!d;' >> ${{ env.RELEASE_NOTES_PATH }}
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+        shell: bash
 
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }} # github.ref
-          release_name: v${{ github.ref_name }} # github.ref
-          body_path: ${{ env.RELEASE_NOTES_PATH }}
-          
-  mac:
-    needs: create-release
-    permissions:
-      contents: write
-      pull-requests: write
-    runs-on: macos-latest
-    env:
-      MACOS_APP_RELEASE_PATH: flutter_app/build/macos/Build/Products/Release
-      MACOS_APP_NAME: thu_downloader
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - working-directory: flutter_app
-        run: flutter build macos --release 
-      
-      - name: Codesign executable
+
+      - name: Platform-specific setup
+        if: matrix.setup-commands != ''
+        run: ${{ matrix.setup-commands }}
+
+      - name: Build Flutter app
+        run: ${{ matrix.build-command }}
+
+      # Linux-specific steps
+      - name: Create Linux archive
+        if: matrix.platform == 'linux'
+        working-directory: thu_downloader/build/linux/x64/release
+        run: |
+          tar -czf bundle.tar.gz bundle/
+          mv bundle.tar.gz bundle/${{ matrix.asset-name }}
+
+      # Windows-specific steps
+      - name: Setup Windows installer
+        if: matrix.platform == 'windows'
+        working-directory: thu_downloader
+        run: |
+          cp scripts/windows_installer/* ../${{ matrix.artifact-path }}
+
+      - name: Build Windows installer
+        if: matrix.platform == 'windows'
+        working-directory: ${{ matrix.artifact-path }}
+        run: |
+          iscc /F"thu_downloader-${{ steps.version.outputs.version }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=${{ steps.version.outputs.version }}
+
+      # macOS-specific steps
+      - name: Code sign macOS app
+        if: matrix.platform == 'macos' && env.MACOS_CERTIFICATE != ''
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
           MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
         run: |
+          # Create certificate file
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
-          security create-keychain -p $MACOS_PASSWD build.keychain
+          
+          # Create and configure keychain
+          security create-keychain -p "$MACOS_PASSWD" build.keychain
           security default-keychain -s build.keychain
-          security unlock-keychain -p $MACOS_PASSWD build.keychain
-          security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_PASSWD build.keychain
-          codesign --deep --force --verbose -s $MACOS_DENTITY ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.app
-      - name: Create a dmg
-        working-directory: ${{ env.MACOS_APP_RELEASE_PATH }}
+          security unlock-keychain -p "$MACOS_PASSWD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PASSWD" build.keychain
+          
+          # Code sign the app
+          codesign --deep --force --verbose -s "$MACOS_DENTITY" "${{ matrix.artifact-path }}/${{ env.APP_NAME }}.app"
+          
+          # Clean up certificate file
+          rm certificate.p12
+
+      - name: Create macOS DMG
+        if: matrix.platform == 'macos'
+        working-directory: ${{ matrix.artifact-path }}
         run: |
-          echo "Install create-dmg"
           brew install create-dmg
           create-dmg \
-            --volname "$MACOS_APP_NAME" \
+            --volname "${{ env.APP_NAME }}" \
             --window-pos 200 120 \
             --window-size 800 529 \
             --icon-size 130 \
             --text-size 14 \
-            --icon "$MACOS_APP_NAME.app" 260 250 \
-            --hide-extension "$MACOS_APP_NAME.app" \
+            --icon "${{ env.APP_NAME }}.app" 260 250 \
+            --hide-extension "${{ env.APP_NAME }}.app" \
             --app-drop-link 540 250 \
             --hdiutil-quiet \
-            "$MACOS_APP_NAME.dmg" \
-            "$MACOS_APP_NAME.app"
-      - name: Upload Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ env.MACOS_APP_RELEASE_PATH }}/${{ env.MACOS_APP_NAME }}.dmg
-          asset_name: ${{ env.MACOS_APP_NAME }}-${{ github.ref_name }}.dmg
-          asset_content_type: application/octet-stream
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact-mac
-          path: ${{ env.MACOS_APP_RELEASE_PATH }}/thu_downloader.dmg
+            "${{ matrix.asset-name }}" \
+            "${{ env.APP_NAME }}.app"
 
-  win:
-    needs: create-release
-    permissions:
-      contents: write
-      pull-requests: write
-    runs-on: windows-latest
-    env:
-      WINDOWS_APP_RELEASE_PATH: flutter_app\build\windows\x64\runner\Release
-      WINDOWS_ZIP_NAME: thu_downloader.zip
-      WINDOWS_INSTALLER_NAME: thu_downloader-v${{ github.ref_name }}-windows-x86_64-installer
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        id: flutter-action-win
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          channel: stable
-          cache: true
-      - working-directory: flutter_app
-        run: flutter build windows --release
-      
-      - name: Copy installer config & icon file
-        working-directory: flutter_app
-        run: |
-            cp scripts/windows_installer/* ../${{ env.WINDOWS_APP_RELEASE_PATH }}
-      
-      - name: Build installer executable
-        working-directory: ${{ env.WINDOWS_APP_RELEASE_PATH }}
-        run: |
-          iscc /F${{ env.WINDOWS_INSTALLER_NAME }} inno_setup_config.iss /DAppVersion=0.0.1
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact-win
-          path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\Output\${{ env.WINDOWS_INSTALLER_NAME }}.exe
-      - name: Upload Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ env.WINDOWS_APP_RELEASE_PATH }}\Output\${{ env.WINDOWS_INSTALLER_NAME }}.exe
-          asset_name: ${{ env.WINDOWS_INSTALLER_NAME }}.exe
-          asset_content_type: application/octet-stream
+          name: ${{ matrix.platform }}-build
+          path: |
+            ${{ matrix.platform == 'linux' && format('{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'windows' && format('{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'macos' && format('{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
 
-
-  linux:
-    needs: create-release
-    permissions:
-      contents: write
-      pull-requests: write
+  create-release:
+    needs: build-and-release
     runs-on: ubuntu-latest
-    env:
-      LINUX_APP_RELEASE_PATH: flutter_app/build/linux/x64/release/bundle
-      LINUX_APP_NAME: thu_downloader-v${{ github.ref_name }}_linux_archive
+    permissions:
+      contents: write
     steps:
-      - name: Clone repository
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        id: flutter-action-linux
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract release notes
+        id: release_notes
+        run: |
+          # Extract release notes for this version from CHANGELOG.md
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES=$(awk "/^## v${VERSION}$/{flag=1; next} /^## /{flag=0} flag" CHANGELOG.md)
+          if [ -z "$NOTES" ]; then
+            NOTES="Release ${{ github.ref_name }}"
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          channel: stable
-          cache: true
-      - run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ninja-build libgtk-3-dev
-      
-      - working-directory: flutter_app
-        run: flutter build linux --release
-      
-      - uses: actions/upload-artifact@v4
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: artifact-linux
-          path: ${{ env.LINUX_APP_RELEASE_PATH }}
-      # zip release path
-      - name: zip Asset
-        uses: vimtor/action-zip@v1
-        with:
-          files: ${{ env.LINUX_APP_RELEASE_PATH }}
-          dest: ${{ env.LINUX_APP_RELEASE_PATH }}/${{ env.LINUX_APP_NAME }}.zip
-      
-      - name: Upload Asset
-        uses: actions/upload-release-asset@v1
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.release_notes.outputs.notes }}
+          files: |
+            artifacts/**/*
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ${{ env.LINUX_APP_RELEASE_PATH }}/${{ env.LINUX_APP_NAME }}.zip
-          asset_name: ${{ env.LINUX_APP_NAME }}
-          asset_content_type: application/octet-stream
