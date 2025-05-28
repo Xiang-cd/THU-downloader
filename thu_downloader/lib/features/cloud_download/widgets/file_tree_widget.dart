@@ -199,7 +199,29 @@ class _FileTreeWidgetState extends State<FileTreeWidget> {
                     style: const TextStyle(fontSize: 14),
                   ),
                 ),
-                if (!node.isDirectory)
+                if (node.isDirectory)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        node.formattedTotalSize,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        '${node.fileCount} 个文件',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  )
+                else
                   Text(
                     node.formattedSize,
                     style: TextStyle(

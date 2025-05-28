@@ -49,6 +49,24 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
     }
   }
 
+  // 计算选中文件的总大小
+  int _calculateSelectedSize() {
+    int totalSize = 0;
+    for (var node in _selectedNodes) {
+      totalSize += node.size;
+    }
+    return totalSize;
+  }
+
+  // 格式化选中文件的总大小
+  String _formatSelectedSize() {
+    final totalSize = _calculateSelectedSize();
+    if (totalSize < 1024) return '${totalSize}B';
+    if (totalSize < 1024 * 1024) return '${(totalSize / 1024).toStringAsFixed(1)}KB';
+    if (totalSize < 1024 * 1024 * 1024) return '${(totalSize / (1024 * 1024)).toStringAsFixed(1)}MB';
+    return '${(totalSize / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+
   Future<void> _parseLink() async {
     if (_linkController.text.isEmpty) {
       setState(() {
@@ -275,6 +293,35 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
             
             const SizedBox(height: 16),
             
+            // 选中文件信息
+            if (_selectedNodes.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green[600], size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '已选中 ${_selectedNodes.length} 个文件，总大小: ${_formatSelectedSize()}',
+                        style: TextStyle(
+                          color: Colors.green[800],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            if (_selectedNodes.isNotEmpty) const SizedBox(height: 16),
+            
             // 文件树区域
             if (_fileNodes.isNotEmpty) ...[
               Row(
@@ -297,7 +344,9 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                       : const Icon(Icons.download),
                     label: Text(_isDownloading 
                       ? '下载中...' 
-                      : '下载选中文件 (${_selectedNodes.length})'),
+                      : _selectedNodes.isEmpty
+                        ? '下载选中文件'
+                        : '下载选中文件 (${_selectedNodes.length}个, ${_formatSelectedSize()})'),
                   ),
                 ],
               ),

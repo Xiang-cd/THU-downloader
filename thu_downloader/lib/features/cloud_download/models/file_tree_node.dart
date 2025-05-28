@@ -148,4 +148,39 @@ class FileTreeNode {
     if (size < 1024 * 1024 * 1024) return '${(size / (1024 * 1024)).toStringAsFixed(1)}MB';
     return '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
   }
+
+  // 计算文件夹的总大小（递归计算所有子文件的大小）
+  int get totalSize {
+    if (!isDirectory) {
+      return size;
+    }
+    
+    int total = 0;
+    for (var child in children) {
+      total += child.totalSize;
+    }
+    return total;
+  }
+
+  // 格式化文件夹的总大小
+  String get formattedTotalSize {
+    final total = totalSize;
+    if (total < 1024) return '${total}B';
+    if (total < 1024 * 1024) return '${(total / 1024).toStringAsFixed(1)}KB';
+    if (total < 1024 * 1024 * 1024) return '${(total / (1024 * 1024)).toStringAsFixed(1)}MB';
+    return '${(total / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+
+  // 获取文件夹中的文件数量
+  int get fileCount {
+    if (!isDirectory) {
+      return 1;
+    }
+    
+    int count = 0;
+    for (var child in children) {
+      count += child.fileCount;
+    }
+    return count;
+  }
 } 
