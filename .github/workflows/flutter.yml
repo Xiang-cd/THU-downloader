@@ -17,7 +17,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             build-command: flutter build linux --release
-            artifact-path: thu_downloader/build/linux/x64/release/bundle
+            artifact-path: build/linux/x64/release/bundle
             asset-name: thu_downloader-${{ github.ref_name }}-linux-x64.tar.gz
             setup-commands: |
               sudo apt-get update -y
@@ -25,13 +25,13 @@ jobs:
           - os: windows-latest
             platform: windows
             build-command: flutter build windows --release
-            artifact-path: thu_downloader\build\windows\x64\runner\Release
+            artifact-path: build\windows\x64\runner\Release
             asset-name: thu_downloader-${{ github.ref_name }}-windows-x64-installer.exe
             setup-commands: ""
           - os: macos-latest
             platform: macos
             build-command: flutter build macos --release
-            artifact-path: thu_downloader/build/macos/Build/Products/Release
+            artifact-path: build/macos/Build/Products/Release
             asset-name: thu_downloader-${{ github.ref_name }}-macos.dmg
             setup-commands: ""
 
@@ -63,6 +63,7 @@ jobs:
         run: ${{ matrix.setup-commands }}
 
       - name: Build Flutter app
+        working-directory: thu_downloader
         run: ${{ matrix.build-command }}
 
       # Linux-specific steps
@@ -78,11 +79,11 @@ jobs:
         if: matrix.platform == 'windows'
         working-directory: thu_downloader
         run: |
-          cp scripts/windows_installer/* ../${{ matrix.artifact-path }}
+          cp scripts/windows_installer/* ${{ matrix.artifact-path }}
 
       - name: Build Windows installer
         if: matrix.platform == 'windows'
-        working-directory: ${{ matrix.artifact-path }}
+        working-directory: thu_downloader/${{ matrix.artifact-path }}
         run: |
           iscc /F"thu_downloader-${{ steps.version.outputs.version }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=${{ steps.version.outputs.version }}
 
@@ -106,14 +107,14 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PASSWD" build.keychain
           
           # Code sign the app
-          codesign --deep --force --verbose -s "$MACOS_DENTITY" "${{ matrix.artifact-path }}/${{ env.APP_NAME }}.app"
+          codesign --deep --force --verbose -s "$MACOS_DENTITY" "thu_downloader/${{ matrix.artifact-path }}/${{ env.APP_NAME }}.app"
           
           # Clean up certificate file
           rm certificate.p12
 
       - name: Create macOS DMG
         if: matrix.platform == 'macos'
-        working-directory: ${{ matrix.artifact-path }}
+        working-directory: thu_downloader/${{ matrix.artifact-path }}
         run: |
           brew install create-dmg
           create-dmg \
@@ -134,9 +135,9 @@ jobs:
         with:
           name: ${{ matrix.platform }}-build
           path: |
-            ${{ matrix.platform == 'linux' && format('{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'windows' && format('{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'macos' && format('{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
 
   create-release:
     needs: build-and-release
