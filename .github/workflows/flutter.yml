@@ -152,7 +152,7 @@ jobs:
           body: ${{ steps.release_notes.outputs.notes }}
           files: |
             ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'windows' && format('thu_downloader\{0}\{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'windows' && format('thu_downloader\{0}\Output\{1}', matrix.artifact-path, matrix.asset-name) || '' }}
             ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
           draft: false
           prerelease: false
