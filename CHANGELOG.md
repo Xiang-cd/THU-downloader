@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Bug fixes will be listed here
 
+## v0.0.6
+
+### Added
+- add app icon
+
+### Fixed
+- fix win installer release bug
+
 ## v0.0.5
 
 ### Changed
