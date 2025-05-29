@@ -5,7 +5,8 @@
 **Note:** The old version of the tool is archived to `python` subdirectory. see [python version readme](python/README.md) for more information.
 
 ## News
-- 🔥🔥🔥THU-downloaer v0.1 released! goto release page to download the installer, our software is safe, just install and enjoy it!
+- 🔥🔥🔥THU-downloaer v0.0.1 released! goto release page to download the installer, our software is safe, just install and enjoy it!
+- 🔥🔥🔥THU-downloaer v0.0.6 released! Enable file tree selection, stream download and download process.
 
 ## Features
 - [x] Download files from THU iCloud
