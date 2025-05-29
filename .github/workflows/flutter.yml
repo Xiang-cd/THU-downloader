@@ -25,7 +25,7 @@ jobs:
           - os: windows-latest
             platform: windows
             build-command: flutter build windows --release
-            artifact-path: build\windows\x64\runner\Release
+            artifact-path: build/windows/x64/runner/Release
             asset-name: thu_downloader-${{ github.ref_name }}-windows-x64-installer.exe
             setup-commands: ""
           - os: macos-latest
@@ -152,7 +152,7 @@ jobs:
           body: ${{ steps.release_notes.outputs.notes }}
           files: |
             ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
-            ${{ matrix.platform == 'windows' && format('thu_downloader\{0}\Output\{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
             ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
           draft: false
           prerelease: false
