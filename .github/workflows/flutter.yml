@@ -85,7 +85,7 @@ jobs:
         if: matrix.platform == 'windows'
         working-directory: thu_downloader/${{ matrix.artifact-path }}
         run: |
-          iscc /F"thu_downloader-${{ steps.version.outputs.version }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=${{ steps.version.outputs.version }}
+          iscc /F"thu_downloader-${{ steps.version.outputs.version }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=v${{ steps.version.outputs.version }}
 
       # macOS-specific steps
       - name: Code sign macOS app
