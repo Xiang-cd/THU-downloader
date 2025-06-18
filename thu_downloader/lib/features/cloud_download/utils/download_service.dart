@@ -6,6 +6,21 @@ import 'cloud_api_service.dart';
 import 'logger.dart';
 
 class DownloadService {
+  static bool _isCancelled = false;
+
+  /// 取消当前下载
+  static void cancelDownload() {
+    _isCancelled = true;
+  }
+
+  /// 重置取消状态
+  static void resetCancellation() {
+    _isCancelled = false;
+  }
+
+  /// 检查是否已取消
+  static bool get isCancelled => _isCancelled;
+
   /// 下载选中的文件和文件夹
   static Future<void> downloadSelected(
     List<FileTreeNode> selectedNodes,
@@ -15,6 +30,7 @@ class DownloadService {
      Function(int downloadedBytes, int totalBytes)? onProgressBytes}
   ) async {
     try {
+      resetCancellation(); // 重置取消状态
       final totalBytes = calculateTotalSize(selectedNodes);
       int completedBytes = 0; // 已完成文件的字节数
       int currentFileDownloadedBytes = 0; // 当前文件已下载的字节数
@@ -23,6 +39,13 @@ class DownloadService {
       onProgressBytes?.call(0, totalBytes);
       
       for (var node in selectedNodes) {
+        // 检查是否已取消
+        if (_isCancelled) {
+          CloudDownloadLogger.download('下载已取消');
+          onProgress?.call('下载已取消');
+          return;
+        }
+
         currentFileDownloadedBytes = 0; // 重置当前文件进度
         
         await _downloadFile(
@@ -44,9 +67,11 @@ class DownloadService {
         );
       }
       
-      CloudDownloadLogger.download('所有文件下载完成');
-      onProgress?.call('所有文件下载完成');
-      onProgressBytes?.call(totalBytes, totalBytes);
+      if (!_isCancelled) {
+        CloudDownloadLogger.download('所有文件下载完成');
+        onProgress?.call('所有文件下载完成');
+        onProgressBytes?.call(totalBytes, totalBytes);
+      }
     } catch (e) {
       CloudDownloadLogger.error('下载过程中发生错误: $e');
       rethrow;
@@ -63,6 +88,11 @@ class DownloadService {
      Function(int currentFileBytes, int totalFileBytes)? onFileProgress}
   ) async {
     try {
+      // 检查是否已取消
+      if (_isCancelled) {
+        return;
+      }
+
       // 从文件路径中提取目录结构和文件名
       final relativePath = fileNode.path.startsWith('/') 
           ? fileNode.path.substring(1) 
@@ -92,6 +122,16 @@ class DownloadService {
       final totalBytes = fileNode.size;
       
       await for (final chunk in response.stream) {
+        // 检查是否已取消
+        if (_isCancelled) {
+          await sink.close();
+          // 删除未完成的文件
+          if (await file.exists()) {
+            await file.delete();
+          }
+          return;
+        }
+
         sink.add(chunk);
         downloadedBytes += chunk.length;
         
@@ -107,11 +147,12 @@ class DownloadService {
       
       await sink.close();
       
-      // 通知文件下载完成
-      onFileDownloaded?.call(fileNode.size);
-      
-      CloudDownloadLogger.download('文件下载完成: ${fileNode.name} (${fileNode.formattedSize})');
-      onProgress?.call('下载完成: ${fileNode.name}');
+      // 只有在未取消的情况下才通知文件下载完成
+      if (!_isCancelled) {
+        onFileDownloaded?.call(fileNode.size);
+        CloudDownloadLogger.download('文件下载完成: ${fileNode.name} (${fileNode.formattedSize})');
+        onProgress?.call('下载完成: ${fileNode.name}');
+      }
     } catch (e) {
       CloudDownloadLogger.error('下载文件失败: ${fileNode.name}, 错误: $e');
       rethrow;

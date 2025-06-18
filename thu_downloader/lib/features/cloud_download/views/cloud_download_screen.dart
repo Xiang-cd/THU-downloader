@@ -217,7 +217,11 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
 
       setState(() {
         _isDownloading = false;
-        _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目到: $selectedDirectory';
+        if (DownloadService.isCancelled) {
+          _statusMessage = '下载已取消';
+        } else {
+          _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目到: $selectedDirectory';
+        }
         _downloadedBytes = 0;
         _totalBytes = 0;
         _downloadProgress = 0.0;
@@ -305,26 +309,45 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      if (_isDownloading) ...[
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Expanded(
-                        child: Text(
-                          _statusMessage,
-                          style: TextStyle(
-                            color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
+                                      Row(
+                      children: [
+                        if (_isDownloading) ...[
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: Text(
+                            _statusMessage,
+                            style: TextStyle(
+                              color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        if (_isDownloading) ...[
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () {
+                              DownloadService.cancelDownload();
+                              setState(() {
+                                _statusMessage = '正在取消下载...';
+                              });
+                            },
+                            icon: Icon(Icons.cancel, color: Colors.orange[700], size: 18),
+                            label: Text(
+                              '取消下载',
+                              style: TextStyle(color: Colors.orange[700]),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   
                   // 下载进度条
                   if (_isDownloading && _totalBytes > 0) ...[
