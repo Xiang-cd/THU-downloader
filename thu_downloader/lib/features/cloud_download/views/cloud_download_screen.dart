@@ -15,6 +15,7 @@ class CloudDownloadScreen extends StatefulWidget {
 
 class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   final TextEditingController _linkController = TextEditingController();
+  final GlobalKey<FileTreeWidgetState> _fileTreeKey = GlobalKey<FileTreeWidgetState>();
   List<FileTreeNode> _fileNodes = [];
   List<FileTreeNode> _selectedNodes = [];
   String _statusMessage = '请输入清华云盘分享链接';
@@ -401,9 +402,30 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '文件列表',
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    children: [
+                      Text(
+                        '文件列表',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _isDownloading ? null : () {
+                          if (_fileTreeKey.currentState != null) {
+                            if (_selectedNodes.isEmpty) {
+                              _fileTreeKey.currentState!.selectAll();
+                            } else {
+                              _fileTreeKey.currentState!.deselectAll();
+                            }
+                          }
+                        },
+                        icon: Icon(
+                          _selectedNodes.isEmpty ? Icons.select_all : Icons.deselect,
+                          size: 18,
+                        ),
+                        label: Text(_selectedNodes.isEmpty ? '全选' : '取消全选'),
+                      ),
+                    ],
                   ),
                   ElevatedButton.icon(
                     onPressed: (_selectedNodes.isEmpty || _isDownloading || !_canDownload) 
@@ -428,6 +450,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
               Expanded(
                 child: Card(
                   child: FileTreeWidget(
+                    key: _fileTreeKey,
                     nodes: _fileNodes,
                     onSelectionChanged: _onSelectionChanged,
                   ),

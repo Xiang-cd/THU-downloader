@@ -12,16 +12,44 @@ class FileTreeWidget extends StatefulWidget {
   });
 
   @override
-  State<FileTreeWidget> createState() => _FileTreeWidgetState();
+  State<FileTreeWidget> createState() => FileTreeWidgetState();
 }
 
-class _FileTreeWidgetState extends State<FileTreeWidget> {
+class FileTreeWidgetState extends State<FileTreeWidget> {
   late List<FileTreeNode> _nodes;
 
   @override
   void initState() {
     super.initState();
     _nodes = widget.nodes;
+  }
+
+  // 全选所有文件
+  void selectAll() {
+    setState(() {
+      for (var node in _nodes) {
+        _updateNodeInTree(node, node.copyWith(
+          isSelected: true,
+          isPartiallySelected: false,
+        ));
+        _selectAllChildren(node);
+      }
+    });
+    widget.onSelectionChanged(_getSelectedNodes());
+  }
+
+  // 取消全选
+  void deselectAll() {
+    setState(() {
+      for (var node in _nodes) {
+        _updateNodeInTree(node, node.copyWith(
+          isSelected: false,
+          isPartiallySelected: false,
+        ));
+        _deselectAllChildren(node);
+      }
+    });
+    widget.onSelectionChanged(_getSelectedNodes());
   }
 
   void _toggleExpansion(FileTreeNode node) {
