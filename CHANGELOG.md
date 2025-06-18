@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Bug fixes will be listed here
 
+## v0.0.7
+
+### Added
+- add select all files button
+- add cancel download
+
+
 ## v0.0.6
 
 ### Added
