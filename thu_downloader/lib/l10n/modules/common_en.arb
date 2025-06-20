@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "app_title": "THU Downloader",
+  "@app_title": {
+    "description": "The title of the application"
+  }
+} 

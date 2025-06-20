@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../../core/localization/l10n_helper.dart';
 import '../models/file_tree_node.dart';
 import '../widgets/file_tree_widget.dart';
 import '../utils/logger.dart';
@@ -18,7 +19,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   final GlobalKey<FileTreeWidgetState> _fileTreeKey = GlobalKey<FileTreeWidgetState>();
   List<FileTreeNode> _fileNodes = [];
   List<FileTreeNode> _selectedNodes = [];
-  String _statusMessage = '请输入清华云盘分享链接';
+  String _statusMessage = '';
   bool _isLoading = false;
   bool _isDownloading = false;
   String? _shareKey;
@@ -61,16 +62,18 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   }
 
   Future<void> _parseLink() async {
+    final l10n = L10nHelper.of(context);
+    
     if (_linkController.text.isEmpty) {
       setState(() {
-        _statusMessage = '请输入分享链接';
+        _statusMessage = l10n.cloudDownload.enterShareLink;
       });
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _statusMessage = '正在验证链接...';
+      _statusMessage = l10n.cloudDownload.validatingLink;
       _fileNodes = [];
       _selectedNodes = [];
       _shareKey = null;
@@ -247,9 +250,14 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = L10nHelper.of(context);
+    if (_statusMessage.isEmpty) {
+      _statusMessage = l10n.cloudDownload.enterShareLink;
+    }
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('清华云盘下载'),
+        title: Text(l10n.cloudDownload.title),
         automaticallyImplyLeading: false,
       ),
       body: Padding(
@@ -263,17 +271,17 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '分享链接',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.cloudDownload.shareLinkLabel,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _linkController,
-                      decoration: const InputDecoration(
-                        hintText: '请输入清华云盘分享链接，如: https://cloud.tsinghua.edu.cn/d/xxx/',
-                        border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.link),
+                      decoration: InputDecoration(
+                        hintText: l10n.cloudDownload.shareLinkHint,
+                        border: const OutlineInputBorder(),
+                        suffixIcon: const Icon(Icons.link),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -286,7 +294,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.search),
-                      label: Text(_isLoading ? '解析中...' : '解析链接'),
+                      label: Text(_isLoading ? l10n.cloudDownload.parsing : l10n.cloudDownload.parseLink),
                     ),
                   ],
                 ),

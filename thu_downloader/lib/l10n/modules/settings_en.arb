@@ -1,0 +1,17 @@
+{
+  "@@locale": "en",
+  "settings_title": "Settings",
+  "@settings_title": {
+    "description": "Title for settings screen"
+  },
+  
+  "settings_languageSettings": "Language Settings",
+  "@settings_languageSettings": {
+    "description": "Language settings menu item"
+  },
+  
+  "settings_selectLanguage": "Select display language",
+  "@settings_selectLanguage": {
+    "description": "Language settings subtitle"
+  }
+}

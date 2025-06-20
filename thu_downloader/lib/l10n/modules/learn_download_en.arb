@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "learnDownload_title": "Learn Download",
+  "@learnDownload_title": {
+    "description": "Title for learn download screen"
+  },
+  
+  "learnDownload_inDevelopment": "Learn download feature is under development...",
+  "@learnDownload_inDevelopment": {
+    "description": "Text for learn download placeholder"
+  }
+}

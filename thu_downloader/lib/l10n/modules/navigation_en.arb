@@ -1,0 +1,17 @@
+{
+  "@@locale": "en",
+  "navigation_cloudDownload": "Cloud Download",
+  "@navigation_cloudDownload": {
+    "description": "Navigation item for cloud download"
+  },
+  
+  "navigation_learnDownload": "Learn Download", 
+  "@navigation_learnDownload": {
+    "description": "Navigation item for learn download"
+  },
+  
+  "navigation_settings": "Settings",
+  "@navigation_settings": {
+    "description": "Navigation item for settings"
+  }
+}

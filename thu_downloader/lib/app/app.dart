@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'routes.dart';
+import '../features/settings/providers/locale_provider.dart';
+import '../core/localization/l10n_helper.dart';
 
 class THUDownloaderApp extends ConsumerWidget {
   const THUDownloaderApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    
     return MaterialApp.router(
       title: 'THU Downloader',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: supportedLocales,
       routerConfig: router,
     );
   }
@@ -76,18 +90,18 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           NavigationRail(
             extended: true,
-            destinations: const [
+            destinations: [
               NavigationRailDestination(
-                icon: Icon(Icons.cloud_download),
-                label: Text('云盘下载'),
+                icon: const Icon(Icons.cloud_download),
+                label: Text(L10nHelper.of(context).navigation.cloudDownload),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.school),
-                label: Text('网络学堂下载'),
+                icon: const Icon(Icons.school),
+                label: Text(L10nHelper.of(context).navigation.learnDownload),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.settings),
-                label: Text('设置'),
+                icon: const Icon(Icons.settings),
+                label: Text(L10nHelper.of(context).navigation.settings),
               ),
             ],
             selectedIndex: _selectedIndex,

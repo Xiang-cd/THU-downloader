@@ -1,0 +1,72 @@
+{
+  "@@locale": "en",
+  "cloudDownload_title": "Cloud Download",
+  "@cloudDownload_title": {
+    "description": "Title for cloud download screen"
+  },
+  
+  "cloudDownload_shareLinkLabel": "Share Link",
+  "@cloudDownload_shareLinkLabel": {
+    "description": "Label for share link input"
+  },
+  
+  "cloudDownload_shareLinkHint": "Please enter Tsinghua Cloud share link, e.g.: https://cloud.tsinghua.edu.cn/d/xxx/",
+  "@cloudDownload_shareLinkHint": {
+    "description": "Hint text for share link input"
+  },
+  
+  "cloudDownload_parseLink": "Parse Link",
+  "@cloudDownload_parseLink": {
+    "description": "Button text to parse link"
+  },
+  
+  "cloudDownload_parsing": "Parsing...",
+  "@cloudDownload_parsing": {
+    "description": "Text shown when parsing link"
+  },
+  
+  "cloudDownload_enterShareLink": "Please enter share link",
+  "@cloudDownload_enterShareLink": {
+    "description": "Message when no link is entered"
+  },
+  
+  "cloudDownload_validatingLink": "Validating link...",
+  "@cloudDownload_validatingLink": {
+    "description": "Message when validating link"
+  },
+  
+  "cloudDownload_fileList": "File List",
+  "@cloudDownload_fileList": {
+    "description": "Title for file list section"
+  },
+  
+  "cloudDownload_selectAll": "Select All",
+  "@cloudDownload_selectAll": {
+    "description": "Button text to select all files"
+  },
+  
+  "cloudDownload_deselectAll": "Deselect All",
+  "@cloudDownload_deselectAll": {
+    "description": "Button text to deselect all files"
+  },
+  
+  "cloudDownload_downloadSelected": "Download Selected Files",
+  "@cloudDownload_downloadSelected": {
+    "description": "Button text to download selected files"
+  },
+  
+  "cloudDownload_downloading": "Downloading...",
+  "@cloudDownload_downloading": {
+    "description": "Text shown when downloading"
+  },
+  
+  "cloudDownload_noFiles": "No Files",
+  "@cloudDownload_noFiles": {
+    "description": "Text when no files are found"
+  },
+  
+  "cloudDownload_enterLinkAndParse": "Please enter share link and click parse",
+  "@cloudDownload_enterLinkAndParse": {
+    "description": "Instruction text when no files are shown"
+  }
+}
