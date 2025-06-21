@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - support l10n for different language
+- support linux deb and rpm build
 
 ### Fixed
 - delete unused code

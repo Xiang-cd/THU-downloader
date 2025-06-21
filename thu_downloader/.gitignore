@@ -29,6 +29,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+lib/gen_l10n
 /build/
 
 # Symbolication related

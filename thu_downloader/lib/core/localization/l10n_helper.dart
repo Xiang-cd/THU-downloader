@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../gen_l10n/app_localizations.dart';
 
 /// 本地化帮助类，提供分组的API接口
 class L10nHelper {
