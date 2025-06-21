@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=THU Downloader
+Comment=A Flutter application for downloading files
+Exec=/opt/thu-downloader/thu_downloader
+Icon=thu-downloader
+Terminal=false
+Categories=Utility;Network;
+StartupWMClass=thu_downloader
+MimeType=application/x-thu-downloader;

@@ -18,10 +18,11 @@ jobs:
             platform: linux
             build-command: flutter build linux --release
             artifact-path: build/linux/x64/release/bundle
-            asset-name: thu_downloader-${{ github.ref_name }}-linux-x64.tar.gz
+            asset-name-deb: thu-downloader_${{ github.ref_name }}_amd64.deb
+            asset-name-rpm: thu-downloader-${{ github.ref_name }}-1.x86_64.rpm
             setup-commands: |
               sudo apt-get update -y
-              sudo apt-get install -y ninja-build libgtk-3-dev
+              sudo apt-get install -y ninja-build libgtk-3-dev rpm
           - os: windows-latest
             platform: windows
             build-command: flutter build windows --release
@@ -62,17 +63,24 @@ jobs:
         if: matrix.setup-commands != ''
         run: ${{ matrix.setup-commands }}
 
+      - name: Build Localization
+        working-directory: thu_downloader
+        run: make build-l10n
+
       - name: Build Flutter app
         working-directory: thu_downloader
         run: ${{ matrix.build-command }}
 
       # Linux-specific steps
-      - name: Create Linux archive
+      - name: Build Linux packages (DEB and RPM)
         if: matrix.platform == 'linux'
-        working-directory: thu_downloader/build/linux/x64/release
+        working-directory: thu_downloader
         run: |
-          tar -czf bundle.tar.gz bundle/
-          mv bundle.tar.gz bundle/${{ matrix.asset-name }}
+          # Make build script executable
+          chmod +x scripts/build_linux_packages.sh
+          
+          # Build DEB and RPM packages
+          scripts/build_linux_packages.sh ${{ steps.version.outputs.version }} ${{ matrix.artifact-path }}
 
       # Windows-specific steps
       - name: Setup Windows installer
@@ -151,7 +159,8 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: ${{ steps.release_notes.outputs.notes }}
           files: |
-            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', matrix.asset-name-deb) || '' }}
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', matrix.asset-name-rpm) || '' }}
             ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
             ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
           draft: false
