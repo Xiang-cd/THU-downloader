@@ -29,9 +29,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   int _downloadedBytes = 0;
   int _totalBytes = 0;
   double _downloadProgress = 0.0;
-  String _currentFileName = '';
-  int _currentFileBytes = 0;
-  int _currentFileTotalBytes = 0;
 
   void _onSelectionChanged(List<FileTreeNode> selectedNodes) {
     setState(() {
@@ -179,9 +176,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
       _downloadedBytes = 0;
       _totalBytes = DownloadService.calculateTotalSize(_selectedNodes);
       _downloadProgress = 0.0;
-      _currentFileName = '';
-      _currentFileBytes = 0;
-      _currentFileTotalBytes = 0;
     });
 
     try {
@@ -196,17 +190,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
         onProgress: (message) {
           setState(() {
             _statusMessage = message;
-            // 从消息中提取当前文件名
-            if (message.startsWith('正在下载: ')) {
-              final parts = message.split(' ');
-              if (parts.length >= 2) {
-                _currentFileName = parts[1].split(' ')[0]; // 获取文件名（去掉百分比部分）
-              }
-            } else if (message.startsWith('下载完成: ')) {
-              _currentFileName = '';
-              _currentFileBytes = 0;
-              _currentFileTotalBytes = 0;
-            }
           });
         },
         onProgressBytes: (downloadedBytes, totalBytes) {
@@ -228,9 +211,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
         _downloadedBytes = 0;
         _totalBytes = 0;
         _downloadProgress = 0.0;
-        _currentFileName = '';
-        _currentFileBytes = 0;
-        _currentFileTotalBytes = 0;
       });
 
     } catch (e) {
@@ -240,9 +220,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
         _downloadedBytes = 0;
         _totalBytes = 0;
         _downloadProgress = 0.0;
-        _currentFileName = '';
-        _currentFileBytes = 0;
-        _currentFileTotalBytes = 0;
       });
       CloudDownloadLogger.error('下载失败: $e');
     }
@@ -251,9 +228,6 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = L10nHelper.of(context);
-    if (_statusMessage.isEmpty) {
-      _statusMessage = l10n.cloudDownload.enterShareLink;
-    }
     
     return Scaffold(
       appBar: AppBar(
@@ -329,7 +303,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                         ],
                         Expanded(
                           child: Text(
-                            _statusMessage,
+                            _statusMessage.isEmpty ? l10n.cloudDownload.enterShareLink : _statusMessage,
                             style: TextStyle(
                               color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
                             ),
@@ -488,21 +462,16 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                 ),
               ),
             ] else ...[
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.folder_open, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
+                      const Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
                       Text(
-                        '暂无文件',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '请输入分享链接并点击解析',
-                        style: TextStyle(color: Colors.grey),
+                        l10n.cloudDownload.noFiles,
+                        style: const TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
