@@ -96,6 +96,11 @@ jobs:
           iscc /F"thu_downloader-${{ github.ref_name }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=${{ steps.version.outputs.version }}
 
       - name: Setup tmate session for debugging
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
+          MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
         uses: mxschmitt/action-tmate@v3
       # macOS-specific steps
       - name: Code sign macOS app
