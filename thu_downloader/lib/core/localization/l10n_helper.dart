@@ -63,6 +63,27 @@ class CloudDownloadStrings {
   String get downloadSelected => _l10n.cloudDownload_downloadSelected;
   String get downloading => _l10n.cloudDownload_downloading;
   String get noFiles => _l10n.cloudDownload_noFiles;
+  String get linkValidatedGettingTree => _l10n.cloudDownload_linkValidatedGettingTree;
+  String parseSuccessCanDownload(int count) => _l10n.cloudDownload_parseSuccessCanDownload(count);
+  String parseSuccessPreviewOnly(int count) => _l10n.cloudDownload_parseSuccessPreviewOnly(count);
+  String parseFailed(String error) => _l10n.cloudDownload_parseFailed(error);
+  String get selectFilesFirst => _l10n.cloudDownload_selectFilesFirst;
+  String get parseLinkFirst => _l10n.cloudDownload_parseLinkFirst;
+  String get previewOnlyNoDownload => _l10n.cloudDownload_previewOnlyNoDownload;
+  String get openingFolderPicker => _l10n.cloudDownload_openingFolderPicker;
+  String get selectDownloadDirectory => _l10n.cloudDownload_selectDownloadDirectory;
+  String folderPickerFailed(String error) => _l10n.cloudDownload_folderPickerFailed(error);
+  String get noDirectorySelected => _l10n.cloudDownload_noDirectorySelected;
+  String downloadingTo(String directory) => _l10n.cloudDownload_downloadingTo(directory);
+  String get downloadCancelled => _l10n.cloudDownload_downloadCancelled;
+  String downloadCompleted(int count, String directory) => _l10n.cloudDownload_downloadCompleted(count, directory);
+  String downloadFailed(String error) => _l10n.cloudDownload_downloadFailed(error);
+  String get cancelDownload => _l10n.cloudDownload_cancelDownload;
+  String get cancellingDownload => _l10n.cloudDownload_cancellingDownload;
+  String downloadProgress(String percent) => _l10n.cloudDownload_downloadProgress(percent);
+  String selectedFiles(int count, String size) => _l10n.cloudDownload_selectedFiles(count, size);
+  String get downloadSelectedFiles => _l10n.cloudDownload_downloadSelectedFiles;
+  String downloadSelectedFilesWithCount(int count, String size) => _l10n.cloudDownload_downloadSelectedFilesWithCount(count, size);
 }
 
 /// 学堂下载相关的字符串

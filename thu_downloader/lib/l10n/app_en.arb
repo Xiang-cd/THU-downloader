@@ -68,6 +68,149 @@
   "@cloudDownload_noFiles": {
     "description": "Text when no files are found"
   },
+  "cloudDownload_linkValidatedGettingTree": "Link validated successfully, getting file tree...",
+  "@cloudDownload_linkValidatedGettingTree": {
+    "description": "Message when link is validated and getting file tree"
+  },
+  "cloudDownload_parseSuccessCanDownload": "Link parsed successfully, found {count} files, can download",
+  "@cloudDownload_parseSuccessCanDownload": {
+    "description": "Message when link is parsed successfully and can download",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudDownload_parseSuccessPreviewOnly": "Link parsed successfully, found {count} files, preview only",
+  "@cloudDownload_parseSuccessPreviewOnly": {
+    "description": "Message when link is parsed successfully but preview only",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cloudDownload_parseFailed": "Parse failed: {error}",
+  "@cloudDownload_parseFailed": {
+    "description": "Message when link parsing fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_selectFilesFirst": "Please select files to download first",
+  "@cloudDownload_selectFilesFirst": {
+    "description": "Message when no files are selected for download"
+  },
+  "cloudDownload_parseLinkFirst": "Please parse share link first",
+  "@cloudDownload_parseLinkFirst": {
+    "description": "Message when trying to download without parsing link"
+  },
+  "cloudDownload_previewOnlyNoDownload": "Current link supports preview only, cannot download",
+  "@cloudDownload_previewOnlyNoDownload": {
+    "description": "Message when link is preview only"
+  },
+  "cloudDownload_openingFolderPicker": "Opening folder picker...",
+  "@cloudDownload_openingFolderPicker": {
+    "description": "Message when opening folder picker"
+  },
+  "cloudDownload_selectDownloadDirectory": "Select Download Directory",
+  "@cloudDownload_selectDownloadDirectory": {
+    "description": "Title for directory picker dialog"
+  },
+  "cloudDownload_folderPickerFailed": "Failed to open folder picker: {error}",
+  "@cloudDownload_folderPickerFailed": {
+    "description": "Message when folder picker fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_noDirectorySelected": "No directory selected",
+  "@cloudDownload_noDirectorySelected": {
+    "description": "Message when no directory is selected"
+  },
+  "cloudDownload_downloadingTo": "Downloading to: {directory}",
+  "@cloudDownload_downloadingTo": {
+    "description": "Message showing download directory",
+    "placeholders": {
+      "directory": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_downloadCancelled": "Download cancelled",
+  "@cloudDownload_downloadCancelled": {
+    "description": "Message when download is cancelled"
+  },
+  "cloudDownload_downloadCompleted": "Download completed! Downloaded {count} items to: {directory}",
+  "@cloudDownload_downloadCompleted": {
+    "description": "Message when download is completed",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "directory": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_downloadFailed": "Download failed: {error}",
+  "@cloudDownload_downloadFailed": {
+    "description": "Message when download fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_cancelDownload": "Cancel Download",
+  "@cloudDownload_cancelDownload": {
+    "description": "Button text to cancel download"
+  },
+  "cloudDownload_cancellingDownload": "Cancelling download...",
+  "@cloudDownload_cancellingDownload": {
+    "description": "Message when cancelling download"
+  },
+  "cloudDownload_downloadProgress": "Download progress: {percent}%",
+  "@cloudDownload_downloadProgress": {
+    "description": "Download progress message",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_selectedFiles": "Selected {count} files, total size: {size}",
+  "@cloudDownload_selectedFiles": {
+    "description": "Message showing selected files count and size",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "cloudDownload_downloadSelectedFiles": "Download Selected Files",
+  "@cloudDownload_downloadSelectedFiles": {
+    "description": "Button text to download selected files"
+  },
+  "cloudDownload_downloadSelectedFilesWithCount": "Download Selected Files ({count} files, {size})",
+  "@cloudDownload_downloadSelectedFilesWithCount": {
+    "description": "Button text to download selected files with count and size",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "learnDownload_title": "Learn Download",
   "@learnDownload_title": {
     "description": "Title for learn download screen"

@@ -82,7 +82,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
       final linkInfo = await CloudApiService.validateShareLink(_linkController.text);
       
       setState(() {
-        _statusMessage = '链接验证成功，正在获取文件树...';
+        _statusMessage = l10n.cloudDownload.linkValidatedGettingTree;
         _shareKey = linkInfo.shareKey;
         _canDownload = linkInfo.canDownload;
       });
@@ -94,14 +94,14 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
         _isLoading = false;
         _fileNodes = fileTree;
         _statusMessage = _canDownload 
-          ? '链接解析成功，共找到 ${_countTotalFiles(fileTree)} 个文件，可以下载'
-          : '链接解析成功，共找到 ${_countTotalFiles(fileTree)} 个文件，仅预览模式';
+          ? l10n.cloudDownload.parseSuccessCanDownload(_countTotalFiles(fileTree))
+          : l10n.cloudDownload.parseSuccessPreviewOnly(_countTotalFiles(fileTree));
       });
 
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _statusMessage = '解析失败: ${e.toString()}';
+        _statusMessage = l10n.cloudDownload.parseFailed(e.toString());
         _fileNodes = [];
         _shareKey = null;
         _canDownload = false;
@@ -123,41 +123,43 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
   }
 
   Future<void> _downloadSelected() async {
+    final l10n = L10nHelper.of(context);
+    
     if (_selectedNodes.isEmpty) {
       setState(() {
-        _statusMessage = '请先选择要下载的文件';
+        _statusMessage = l10n.cloudDownload.selectFilesFirst;
       });
       return;
     }
 
     if (_shareKey == null) {
       setState(() {
-        _statusMessage = '请先解析分享链接';
+        _statusMessage = l10n.cloudDownload.parseLinkFirst;
       });
       return;
     }
 
     if (!_canDownload) {
       setState(() {
-        _statusMessage = '当前链接仅支持预览，无法下载';
+        _statusMessage = l10n.cloudDownload.previewOnlyNoDownload;
       });
       return;
     }
 
     // 选择下载目录
     setState(() {
-      _statusMessage = '正在打开文件夹选择器...';
+      _statusMessage = l10n.cloudDownload.openingFolderPicker;
     });
     
     String? selectedDirectory;
     try {
       selectedDirectory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: '选择下载目录',
+        dialogTitle: l10n.cloudDownload.selectDownloadDirectory,
       );
       CloudDownloadLogger.download('文件夹选择器返回: $selectedDirectory');
     } catch (e) {
       setState(() {
-        _statusMessage = '打开文件夹选择器失败: ${e.toString()}';
+        _statusMessage = l10n.cloudDownload.folderPickerFailed(e.toString());
       });
       CloudDownloadLogger.error('文件夹选择器错误: $e');
       return;
@@ -165,14 +167,14 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
     
     if (selectedDirectory == null) {
       setState(() {
-        _statusMessage = '未选择下载目录';
+        _statusMessage = l10n.cloudDownload.noDirectorySelected;
       });
       return;
     }
 
     setState(() {
       _isDownloading = true;
-      _statusMessage = '正在下载到: $selectedDirectory';
+      _statusMessage = l10n.cloudDownload.downloadingTo(selectedDirectory!);
       _downloadedBytes = 0;
       _totalBytes = DownloadService.calculateTotalSize(_selectedNodes);
       _downloadProgress = 0.0;
@@ -204,9 +206,9 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
       setState(() {
         _isDownloading = false;
         if (DownloadService.isCancelled) {
-          _statusMessage = '下载已取消';
+          _statusMessage = l10n.cloudDownload.downloadCancelled;
         } else {
-          _statusMessage = '下载完成！共下载 ${_selectedNodes.length} 个项目到: $selectedDirectory';
+          _statusMessage = l10n.cloudDownload.downloadCompleted(_selectedNodes.length, selectedDirectory!);
         }
         _downloadedBytes = 0;
         _totalBytes = 0;
@@ -216,7 +218,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
     } catch (e) {
       setState(() {
         _isDownloading = false;
-        _statusMessage = '下载失败: ${e.toString()}';
+        _statusMessage = l10n.cloudDownload.downloadFailed(e.toString());
         _downloadedBytes = 0;
         _totalBytes = 0;
         _downloadProgress = 0.0;
@@ -315,12 +317,12 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                             onPressed: () {
                               DownloadService.cancelDownload();
                               setState(() {
-                                _statusMessage = '正在取消下载...';
+                                _statusMessage = l10n.cloudDownload.cancellingDownload;
                               });
                             },
                             icon: Icon(Icons.cancel, color: Colors.orange[700], size: 18),
                             label: Text(
-                              '取消下载',
+                              l10n.cloudDownload.cancelDownload,
                               style: TextStyle(color: Colors.orange[700]),
                             ),
                             style: TextButton.styleFrom(
@@ -341,7 +343,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '下载进度: ${(_downloadProgress * 100).toStringAsFixed(1)}%',
+                              l10n.cloudDownload.downloadProgress((_downloadProgress * 100).toStringAsFixed(1)),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.orange[700],
@@ -389,7 +391,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '已选中 ${_selectedNodes.length} 个文件，总大小: ${_formatSelectedSize()}',
+                        l10n.cloudDownload.selectedFiles(_selectedNodes.length, _formatSelectedSize()),
                         style: TextStyle(
                           color: Colors.green[800],
                           fontWeight: FontWeight.w500,
@@ -409,10 +411,10 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        '文件列表',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
+                                          Text(
+                      l10n.cloudDownload.fileList,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: _isDownloading ? null : () {
@@ -428,7 +430,7 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                           _selectedNodes.isEmpty ? Icons.select_all : Icons.deselect,
                           size: 18,
                         ),
-                        label: Text(_selectedNodes.isEmpty ? '全选' : '取消全选'),
+                        label: Text(_selectedNodes.isEmpty ? l10n.cloudDownload.selectAll : l10n.cloudDownload.deselectAll),
                       ),
                     ],
                   ),
@@ -444,10 +446,10 @@ class _CloudDownloadScreenState extends State<CloudDownloadScreen> {
                         )
                       : const Icon(Icons.download),
                     label: Text(_isDownloading 
-                      ? '下载中...' 
+                      ? l10n.cloudDownload.downloading
                       : _selectedNodes.isEmpty
-                        ? '下载选中文件'
-                        : '下载选中文件 (${_selectedNodes.length}个, ${_formatSelectedSize()})'),
+                        ? l10n.cloudDownload.downloadSelectedFiles
+                        : l10n.cloudDownload.downloadSelectedFilesWithCount(_selectedNodes.length, _formatSelectedSize())),
                   ),
                 ],
               ),
