@@ -63,6 +63,10 @@ jobs:
         if: matrix.setup-commands != ''
         run: ${{ matrix.setup-commands }}
 
+      - name: Get Flutter dependencies
+        working-directory: thu_downloader
+        run: flutter pub get
+
       - name: Build Localization
         working-directory: thu_downloader
         run: make build-l10n
