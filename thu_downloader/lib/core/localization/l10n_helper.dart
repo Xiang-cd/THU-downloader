@@ -63,7 +63,6 @@ class CloudDownloadStrings {
   String get downloadSelected => _l10n.cloudDownload_downloadSelected;
   String get downloading => _l10n.cloudDownload_downloading;
   String get noFiles => _l10n.cloudDownload_noFiles;
-  String get enterLinkAndParse => _l10n.cloudDownload_enterLinkAndParse;
 }
 
 /// 学堂下载相关的字符串
