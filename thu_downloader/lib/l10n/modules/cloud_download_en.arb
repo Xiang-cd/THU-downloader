@@ -25,7 +25,7 @@
     "description": "Text shown when parsing link"
   },
   
-  "cloudDownload_enterShareLink": "Please enter share link",
+  "cloudDownload_enterShareLink": "Please enter share link and click parse",
   "@cloudDownload_enterShareLink": {
     "description": "Message when no link is entered"
   },
@@ -63,10 +63,5 @@
   "cloudDownload_noFiles": "No Files",
   "@cloudDownload_noFiles": {
     "description": "Text when no files are found"
-  },
-  
-  "cloudDownload_enterLinkAndParse": "Please enter share link and click parse",
-  "@cloudDownload_enterLinkAndParse": {
-    "description": "Instruction text when no files are shown"
   }
 }

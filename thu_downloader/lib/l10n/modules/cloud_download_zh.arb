@@ -5,13 +5,12 @@
   "cloudDownload_shareLinkHint": "请输入清华云盘分享链接，如: https://cloud.tsinghua.edu.cn/d/xxx/",
   "cloudDownload_parseLink": "解析链接",
   "cloudDownload_parsing": "解析中...",
-  "cloudDownload_enterShareLink": "请输入分享链接",
+  "cloudDownload_enterShareLink": "请输入分享链接并点击解析",
   "cloudDownload_validatingLink": "正在验证链接...",
   "cloudDownload_fileList": "文件列表",
   "cloudDownload_selectAll": "全选",
   "cloudDownload_deselectAll": "取消全选",
   "cloudDownload_downloadSelected": "下载选中文件",
   "cloudDownload_downloading": "下载中...",
-  "cloudDownload_noFiles": "暂无文件",
-  "cloudDownload_enterLinkAndParse": "请输入分享链接并点击解析"
+  "cloudDownload_noFiles": "暂无文件"
 }
