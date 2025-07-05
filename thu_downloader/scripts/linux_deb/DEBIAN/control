@@ -4,9 +4,7 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Depends: libc6, libgtk-3-0, libglib2.0-0
-Maintainer: THU Downloader Team <maintainer@example.com>
+Maintainer: Xiang-cd
 Description: THU Downloader - A Flutter application for downloading files
  THU Downloader is a cross-platform application built with Flutter
  for downloading files from Tsinghua University resources.
- .
- This package provides the Linux desktop version of the application. 

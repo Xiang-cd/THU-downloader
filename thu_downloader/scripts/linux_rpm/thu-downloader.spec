@@ -4,11 +4,10 @@ Release:        1%{?dist}
 Summary:        THU Downloader - A Flutter application for downloading files
 
 License:        MIT
-URL:            https://github.com/your-repo/thu-downloader
+URL:            https://github.com/Xiang-cd/THU-downloader
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires:  desktop-file-utils
-Requires:       gtk3, glib2
+Requires:       gtk3, glib2, desktop-file-utils
 
 %description
 THU Downloader is a cross-platform application built with Flutter
@@ -32,7 +31,7 @@ cp -r bundle/* $RPM_BUILD_ROOT/opt/thu-downloader/
 # Install desktop file
 cat > $RPM_BUILD_ROOT/usr/share/applications/thu-downloader.desktop << EOF
 [Desktop Entry]
-Version=1.0
+Version=VERSION_PLACEHOLDER
 Type=Application
 Name=THU Downloader
 Comment=A Flutter application for downloading files
@@ -69,5 +68,5 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 
 %changelog
-* $(date "+%a %b %d %Y") Builder <builder@example.com> - %{version}-%{release}
+* Mon Jan 01 2024 Builder <builder@example.com> - %{version}-%{release}
 - Initial package 

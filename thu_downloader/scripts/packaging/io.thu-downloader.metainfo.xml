@@ -1,0 +1,52 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.thu-downloader.thu-downloader</id>
+  <name>THU Downloader</name>
+  <summary>Download files from THU cloud and learning platforms</summary>
+  <description>
+    <p>
+      THU Downloader is a desktop application that allows users to download files from 
+      Tsinghua University's cloud storage and learning platforms. It provides a user-friendly 
+      interface for managing downloads and organizing files.
+    </p>
+    <p>
+      Features:
+    </p>
+    <ul>
+      <li>Download files from THU cloud storage</li>
+      <li>Access learning platform resources</li>
+      <li>Organize downloads by categories</li>
+      <li>Resume interrupted downloads</li>
+      <li>Multi-language support (English/Chinese)</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">thu-downloader.desktop</launchable>
+  <url type="homepage">https://github.com/your-username/thu-downloader</url>
+  <url type="bugtracker">https://github.com/your-username/thu-downloader/issues</url>
+  <url type="help">https://github.com/your-username/thu-downloader/wiki</url>
+  <developer_name>THU Downloader Team</developer_name>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.0.0" date="2024-01-01">
+      <description>
+        <p>Initial release with basic download functionality</p>
+      </description>
+    </release>
+  </releases>
+  <categories>
+    <category>Network</category>
+    <category>FileManager</category>
+    <category>Utility</category>
+  </categories>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/your-username/thu-downloader/raw/main/screenshots/main.png</image>
+      <caption>Main application window</caption>
+    </screenshot>
+  </screenshots>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <provides>
+    <binary>thu_downloader</binary>
+  </provides>
+</component>

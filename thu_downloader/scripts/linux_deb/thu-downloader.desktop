@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=THU Downloader
+Name[zh]=清华下载器
+Comment=Download files from THU cloud and learning platforms
+Comment[zh]=从清华云盘和学习平台下载文件
+Exec=/opt/thu-downloader/thu_downloader
+Icon=thu-downloader
+Terminal=false
+Categories=Network;FileManager;Utility;
+StartupWMClass=thu-downloader 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#46286b"/>
+  <!-- THU text -->
+  <text x="50%" y="130" text-anchor="middle" font-family="Comic Sans MS, Comic Sans, Chalkboard, sans-serif" font-size="140" fill="white" font-weight="bold" letter-spacing="10">THU</text>
+  <!-- downloader text -->
+  <text x="50%" y="220" text-anchor="middle" font-family="Comic Sans MS, Comic Sans, Chalkboard, sans-serif" font-size="56" fill="white" letter-spacing="2">downloader</text>
+  <!-- Download arrow -->
+  <g stroke="white" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <line x1="256" y1="260" x2="256" y2="390"/>
+    <polyline points="186,330 256,400 326,330"/>
+    <rect x="146" y="400" width="220" height="40" rx="20" fill="none" stroke="white" stroke-width="18"/>
+  </g>
+</svg>
