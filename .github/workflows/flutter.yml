@@ -18,8 +18,6 @@ jobs:
             platform: linux
             build-command: flutter build linux --release
             artifact-path: build/linux/x64/release/bundle
-            asset-name-deb: thu-downloader_${{ github.ref_name }}_amd64.deb
-            asset-name-rpm: thu-downloader-${{ github.ref_name }}-1.x86_64.rpm
             setup-commands: |
               sudo apt-get update -y
               sudo apt-get install -y ninja-build libgtk-3-dev rpm
@@ -74,6 +72,7 @@ jobs:
       # Linux-specific steps
       - name: Build Linux packages (DEB and RPM)
         if: matrix.platform == 'linux'
+        id: build_linux
         working-directory: thu_downloader
         run: |
           # Make build script executable
@@ -81,6 +80,11 @@ jobs:
           
           # Build DEB and RPM packages
           scripts/build_linux_packages.sh ${{ steps.version.outputs.version }} ${{ matrix.artifact-path }}
+
+          DEB_FILE=$(find . -maxdepth 1 -name "thu-downloader_*.deb" -printf "%f")
+          RPM_FILE=$(find . -maxdepth 1 -name "thu-downloader-*.rpm" -printf "%f")
+          echo "deb_file=$DEB_FILE" >> $GITHUB_OUTPUT
+          echo "rpm_file=$RPM_FILE" >> $GITHUB_OUTPUT
 
       # Windows-specific steps
       - name: Setup Windows installer
@@ -95,13 +99,13 @@ jobs:
         run: |
           iscc /F"thu_downloader-${{ github.ref_name }}-windows-x64-installer" inno_setup_config.iss /DAppVersion=${{ steps.version.outputs.version }}
 
-      - name: Setup tmate session for debugging
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
-          MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
-        uses: mxschmitt/action-tmate@v3
+      # - name: Setup tmate session for debugging
+      #   env:
+      #     MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      #     MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      #     MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
+      #     MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
+      #   uses: mxschmitt/action-tmate@v3
       # macOS-specific steps
       - name: Code sign macOS app
         if: matrix.platform == 'macos' && env.MACOS_CERTIFICATE != ''
@@ -166,8 +170,8 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: ${{ steps.release_notes.outputs.notes }}
           files: |
-            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', matrix.asset-name-deb) || '' }}
-            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', matrix.asset-name-rpm) || '' }}
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', steps.build_linux.outputs.deb_file) || '' }}
+            ${{ matrix.platform == 'linux' && format('thu_downloader/{0}', steps.build_linux.outputs.rpm_file) || '' }}
             ${{ matrix.platform == 'windows' && format('thu_downloader/{0}/Output/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
             ${{ matrix.platform == 'macos' && format('thu_downloader/{0}/{1}', matrix.artifact-path, matrix.asset-name) || '' }}
           draft: false
