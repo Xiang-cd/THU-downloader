@@ -107,29 +107,29 @@ jobs:
       #     MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
       #   uses: mxschmitt/action-tmate@v3
       # macOS-specific steps
-      - name: Code sign macOS app
-        if: matrix.platform == 'macos' && env.MACOS_CERTIFICATE != ''
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
-          MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
-        run: |
-          # Create certificate file
-          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+      # - name: Code sign macOS app
+      #   if: matrix.platform == 'macos' && env.MACOS_CERTIFICATE != ''
+      #   env:
+      #     MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+      #     MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+      #     MACOS_PASSWD: ${{ secrets.MACOS_PASSWD }}
+      #     MACOS_DENTITY: ${{ secrets.MACOS_DENTITY }}
+      #   run: |
+      #     # Create certificate file
+      #     echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
           
-          # Create and configure keychain
-          security create-keychain -p "$MACOS_PASSWD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$MACOS_PASSWD" build.keychain
-          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PASSWD" build.keychain
+      #     # Create and configure keychain
+      #     security create-keychain -p "$MACOS_PASSWD" build.keychain
+      #     security default-keychain -s build.keychain
+      #     security unlock-keychain -p "$MACOS_PASSWD" build.keychain
+      #     security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+      #     security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_PASSWD" build.keychain
           
-          # Code sign the app
-          codesign --deep --force --verbose -s "$MACOS_DENTITY" "thu_downloader/${{ matrix.artifact-path }}/${{ env.APP_NAME }}.app"
+      #     # Code sign the app
+      #     codesign --deep --force --verbose -s "$MACOS_DENTITY" "thu_downloader/${{ matrix.artifact-path }}/${{ env.APP_NAME }}.app"
           
-          # Clean up certificate file
-          rm certificate.p12
+      #     # Clean up certificate file
+      #     rm certificate.p12
 
       - name: Create macOS DMG
         if: matrix.platform == 'macos'
