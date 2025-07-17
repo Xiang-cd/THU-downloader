@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thu_downloader/features/learn_download/utils/learn_api_service.dart';
+import 'package:thu_downloader/features/learn_download/views/webview_login_screen.dart';
 import '../../../core/localization/l10n_helper.dart';
 
 class LearnDownloadScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> {
   @override
   void dispose() {
     _tokenController.dispose();
+    _apiService.dispose();
     super.dispose();
   }
 
@@ -89,13 +91,25 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> {
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () {
-                // TODO: Implement webview login
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Webview login not implemented yet.'),
-                  ),
-                );
+              onPressed: () async {
+                try {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => WebviewLoginScreen(
+                        onLoginSuccess: (csrfToken) {
+                          setState(() {
+                            _tokenController.text = csrfToken;
+                            _status = 'Login successful! Token: ${csrfToken.substring(0, 10)}...';
+                          });
+                        },
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  setState(() {
+                    _status = 'Webview error: $e';
+                  });
+                }
               },
               child: const Text('Login with Webview'),
             ),

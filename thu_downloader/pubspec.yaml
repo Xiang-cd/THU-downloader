@@ -46,6 +46,7 @@ dependencies:
   path: ^1.8.3
   file_picker: ^8.1.2
   flutter_launcher_icons: ^0.14.3
+  webview_flutter: ^4.7.0
 
 dev_dependencies:
   flutter_test:
