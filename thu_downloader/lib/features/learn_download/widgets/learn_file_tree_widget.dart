@@ -288,14 +288,12 @@ class LearnFileTreeWidgetState extends State<LearnFileTreeWidget> {
                   )
                 else
                   const SizedBox(width: 20),
-                if (node.type == NodeType.document)
-                  Checkbox(
-                    value: node.isPartiallySelected ? null : node.isSelected,
-                    tristate: true,
-                    onChanged: (_) => _toggleSelection(node),
-                  )
-                else
-                  const SizedBox(width: 24),
+                // 为所有节点类型添加勾选按钮
+                Checkbox(
+                  value: node.isPartiallySelected ? null : node.isSelected,
+                  tristate: true,
+                  onChanged: (_) => _toggleSelection(node),
+                ),
               ],
             ),
             title: Row(

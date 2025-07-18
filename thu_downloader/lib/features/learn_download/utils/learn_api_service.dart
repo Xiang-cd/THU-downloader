@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -209,6 +210,103 @@ class LearnApiService {
     } catch (e) {
       print('Error getting documents: $e');
       return [];
+    }
+  }
+
+  // 下载文件
+  Future<void> downloadFile(
+    dynamic document,
+    String baseDirectory,
+    String csrfToken, {
+    Function(int downloaded, int total)? onProgress,
+  }) async {
+    try {
+      const url = 'https://learn.tsinghua.edu.cn/b/wlxt/kj/wlkc_kjxxb/student/downloadFile';
+      
+      final params = {
+        'sfgk': 0,
+        'wjid': document.fileId,
+        '_csrf': csrfToken,
+      };
+
+      // 构建完整的文件路径，保持目录结构
+      final relativePath = document.buildFilePath();
+      final directoryPath = '$baseDirectory/${_getDirectoryPath(relativePath)}';
+      final fileName = _sanitizeFileNameWithExtension(document.name, document.fileType);
+      final filePath = '$directoryPath/$fileName';
+
+      // 确保目录存在
+      await _ensureDirectoryExists(directoryPath);
+
+      await _dio.download(
+        url,
+        filePath,
+        queryParameters: params,
+        options: Options(
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://learn.tsinghua.edu.cn/',
+          },
+          responseType: ResponseType.bytes,
+        ),
+        onReceiveProgress: onProgress,
+      );
+
+      print('File downloaded successfully: $filePath');
+    } catch (e) {
+      print('Download error for ${document.name}: $e');
+      rethrow;
+    }
+  }
+
+  // 清理文件名（移除非法字符）
+  String _sanitizeFileName(String fileName) {
+    return fileName
+        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  // 清理文件名并保留扩展名
+  String _sanitizeFileNameWithExtension(String fileName, String? fileType) {
+    // 先清理文件名
+    String sanitizedName = _sanitizeFileName(fileName);
+    
+    // 如果文件名已经有扩展名，直接返回
+    if (sanitizedName.contains('.')) {
+      return sanitizedName;
+    }
+    
+    // 根据文件类型添加扩展名
+    if (fileType != null && fileType.isNotEmpty) {
+      final extension = fileType;
+      if (extension.isNotEmpty) {
+        return '$sanitizedName.$extension';
+      }
+    }
+    
+    return sanitizedName;
+  }
+
+  // 获取目录路径（去掉文件名部分）
+  String _getDirectoryPath(String fullPath) {
+    final lastSlashIndex = fullPath.lastIndexOf('/');
+    if (lastSlashIndex == -1) {
+      return '';
+    }
+    return fullPath.substring(0, lastSlashIndex);
+  }
+
+  // 确保目录存在
+  Future<void> _ensureDirectoryExists(String directoryPath) async {
+    try {
+      final directory = Directory(directoryPath);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+    } catch (e) {
+      print('Error creating directory $directoryPath: $e');
+      rethrow;
     }
   }
 

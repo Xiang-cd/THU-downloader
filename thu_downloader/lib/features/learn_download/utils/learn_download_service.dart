@@ -11,7 +11,6 @@ class LearnDownloadService {
     try {
       // 1. 获取学期列表
       final semesters = await _apiService.getSemesters(csrfToken);
-      print('Semesters: $semesters');
       if (semesters.isEmpty) {
         return [];
       }
@@ -54,16 +53,28 @@ class LearnDownloadService {
 
             // 将文档添加到分类节点
             categoryNode.children.addAll(documentNodes);
+            // 设置子节点的父节点引用
+            for (var child in categoryNode.children) {
+              child.parent = categoryNode;
+            }
             categoryNodes.add(categoryNode);
           }
 
           // 将分类添加到课程节点
           courseNode.children.addAll(categoryNodes);
+          // 设置子节点的父节点引用
+          for (var child in courseNode.children) {
+            child.parent = courseNode;
+          }
           courseNodes.add(courseNode);
         }
 
         // 将课程添加到学期节点
         semesterNode.children.addAll(courseNodes);
+        // 设置子节点的父节点引用
+        for (var child in semesterNode.children) {
+          child.parent = semesterNode;
+        }
         semesterNodes.add(semesterNode);
       }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:thu_downloader/features/learn_download/utils/learn_api_service.dart';
 import 'package:thu_downloader/features/learn_download/utils/learn_download_service.dart';
 import 'package:thu_downloader/features/learn_download/views/webview_login_screen.dart';
@@ -18,6 +19,7 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
   String _status = '';
   bool _isLoading = false;
   bool _isLoggedIn = false;
+  bool _isDownloading = false;
   late final LearnApiService _apiService;
   late final LearnDownloadService _downloadService;
   late TabController _tabController;
@@ -30,6 +32,13 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
   
   // 选中的文件
   List<LearnFileTreeNode> _selectedDocuments = [];
+  
+  // 下载进度相关变量
+  int _downloadedBytes = 0;
+  int _totalBytes = 0;
+  double _downloadProgress = 0.0;
+  int _completedCount = 0;
+  int _failedCount = 0;
 
   @override
   void initState() {
@@ -77,11 +86,27 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
   }
 
   void _onNodeExpanded(LearnFileTreeNode node) {
-    // 这里可以实现懒加载逻辑
-    print('Node expanded: ${node.name}');
+    // TODO: 实现懒加载逻辑
   }
 
-  void _startDownload() {
+  // 计算选中文件的总大小
+  int _calculateSelectedSize() {
+    int totalSize = 0;
+    for (var document in _selectedDocuments) {
+      totalSize += document.size;
+    }
+    return totalSize;
+  }
+
+  // 格式化文件大小
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+
+  Future<void> _startDownload() async {
     if (_selectedDocuments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select files to download')),
@@ -89,12 +114,94 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
       return;
     }
 
-    // TODO: 实现下载逻辑
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Starting download of ${_selectedDocuments.length} files...'),
-      ),
+    // 选择下载目录
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Select download directory',
     );
+
+    if (selectedDirectory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No directory selected')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isDownloading = true;
+      _status = 'Starting download...';
+      _downloadedBytes = 0;
+      _totalBytes = _calculateSelectedSize();
+      _downloadProgress = 0.0;
+      _completedCount = 0;
+      _failedCount = 0;
+    });
+
+    try {
+      // 顺序下载所有选中的文件
+      for (int i = 0; i < _selectedDocuments.length; i++) {
+        final document = _selectedDocuments[i];
+        
+        if (!mounted) break;
+        
+        setState(() {
+          _status = 'Downloading: ${document.name} (${i + 1}/${_selectedDocuments.length})';
+        });
+
+        try {
+          await _apiService.downloadFile(
+            document,
+            selectedDirectory,
+            _csrfToken,
+            onProgress: (downloaded, total) {
+              if (mounted) {
+                setState(() {
+                  // 计算总体进度：已完成文件的字节数 + 当前文件已下载字节数
+                  int completedBytes = 0;
+                  for (int j = 0; j < i; j++) {
+                    completedBytes += _selectedDocuments[j].size;
+                  }
+                  completedBytes += downloaded.toInt();
+                  _downloadedBytes = completedBytes;
+                  _downloadProgress = _totalBytes > 0 ? completedBytes / _totalBytes : 0.0;
+                });
+              }
+            },
+          );
+          
+          if (mounted) {
+            setState(() {
+              _completedCount++;
+            });
+          }
+        } catch (e) {
+          print('Error downloading ${document.name}: $e');
+          if (mounted) {
+            setState(() {
+              _failedCount++;
+            });
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          if (_failedCount == 0) {
+            _status = 'Download completed successfully! ${_completedCount} files downloaded.';
+          } else {
+            _status = 'Download completed with errors. ${_completedCount} succeeded, ${_failedCount} failed.';
+          }
+        });
+      }
+
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _status = 'Download failed: $e';
+        });
+      }
+    }
   }
 
   @override
@@ -126,6 +233,9 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
         children: [
           // 登录区域
           if (!_isLoggedIn) _buildLoginSection(),
+          
+          // 状态信息
+          if (_status.isNotEmpty) _buildStatusSection(),
           
           // 主要内容区域
           Expanded(
@@ -191,9 +301,105 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
               ),
             ],
           ),
-          if (_status.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(_status, style: TextStyle(color: Colors.grey[600])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _isDownloading ? Colors.orange[50] : Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _isDownloading ? Colors.orange[200]! : Colors.blue[200]!
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_isDownloading) ...[
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  _status,
+                  style: TextStyle(
+                    color: _isDownloading ? Colors.orange[800] : Colors.blue[800]
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          // 下载进度条
+          if (_isDownloading && _totalBytes > 0) ...[
+            const SizedBox(height: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Progress: ${(_downloadProgress * 100).toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '${_formatSize(_downloadedBytes)} / ${_formatSize(_totalBytes)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange[700],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: _downloadProgress,
+                  backgroundColor: Colors.orange[100],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.orange[600]!),
+                  minHeight: 6,
+                ),
+                if (_completedCount > 0 || _failedCount > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (_completedCount > 0) ...[
+                        Icon(Icons.check_circle, size: 16, color: Colors.green[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Completed: $_completedCount',
+                          style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                        ),
+                      ],
+                      if (_failedCount > 0) ...[
+                        const SizedBox(width: 16),
+                        Icon(Icons.error, size: 16, color: Colors.red[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Failed: $_failedCount',
+                          style: TextStyle(fontSize: 12, color: Colors.red[700]),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ],
         ],
       ),
@@ -266,9 +472,15 @@ class _LearnDownloadScreenState extends State<LearnDownloadScreen> with TickerPr
               ),
               const Spacer(),
               ElevatedButton.icon(
-                onPressed: _startDownload,
-                icon: const Icon(Icons.download),
-                label: const Text('Download'),
+                onPressed: _isDownloading ? null : _startDownload,
+                icon: _isDownloading 
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download),
+                label: Text(_isDownloading ? 'Downloading...' : 'Download'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

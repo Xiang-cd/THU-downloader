@@ -15,6 +15,14 @@ class LearnFileTreeNode {
   final String? fileId;
   final String? fileType;
   final int? uploadTime;
+  
+  // 父子关系
+  LearnFileTreeNode? _parent;
+  
+  // 设置父节点
+  set parent(LearnFileTreeNode? value) {
+    _parent = value;
+  }
 
   LearnFileTreeNode({
     required this.id,
@@ -31,7 +39,12 @@ class LearnFileTreeNode {
     this.fileId,
     this.fileType,
     this.uploadTime,
-  }) : children = children ?? [];
+  }) : children = children ?? [] {
+    // 设置子节点的父节点引用
+    for (var child in this.children) {
+      child._parent = this;
+    }
+  }
 
   // 从API响应创建学期节点
   factory LearnFileTreeNode.fromSemester(String semesterId) {
@@ -247,6 +260,56 @@ class LearnFileTreeNode {
     
     final date = DateTime.fromMillisecondsSinceEpoch(uploadTime!);
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  // 获取父节点
+  LearnFileTreeNode? get parent => _parent;
+
+  // 获取根节点（学期节点）
+  LearnFileTreeNode? get rootNode {
+    var current = this;
+    while (current._parent != null) {
+      current = current._parent!;
+    }
+    return current.type == NodeType.semester ? current : null;
+  }
+
+  // 获取课程节点
+  LearnFileTreeNode? get courseNode {
+    var current = this;
+    while (current._parent != null) {
+      current = current._parent!;
+      if (current.type == NodeType.course) {
+        return current;
+      }
+    }
+    return null;
+  }
+
+  // 获取分类节点
+  LearnFileTreeNode? get categoryNode {
+    var current = this;
+    while (current._parent != null) {
+      current = current._parent!;
+      if (current.type == NodeType.category) {
+        return current;
+      }
+    }
+    return null;
+  }
+
+  // 构建文件路径
+  String buildFilePath() {
+    final pathSegments = <String>[];
+    LearnFileTreeNode? current = this;
+    
+    // 从当前节点向上遍历到根节点
+    while (current != null) {
+      pathSegments.insert(0, current.name);
+      current = current._parent;
+    }
+    
+    return pathSegments.join('/');
   }
 
   @override
