@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bug fixes will be listed here
 
 
+### v0.0.9
+### Added
+- support learning download
+
+
 ## v0.0.8
 
 ### Added
