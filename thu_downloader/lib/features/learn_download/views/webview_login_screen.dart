@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'dart:convert';
-import 'dart:io';
 import '../utils/learn_api_service.dart';
 
 class WebviewLoginScreen extends StatefulWidget {
   final Function(String csrfToken) onLoginSuccess;
+  final LearnApiService apiService;
 
   const WebviewLoginScreen({
     super.key,
     required this.onLoginSuccess,
+    required this.apiService,
   });
 
   @override
@@ -18,7 +18,6 @@ class WebviewLoginScreen extends StatefulWidget {
 
 class _WebviewLoginScreenState extends State<WebviewLoginScreen> {
   late final WebViewController _controller;
-  bool _isLoading = true;
   String _status = 'Loading...';
 
   @override
@@ -39,13 +38,7 @@ class _WebviewLoginScreenState extends State<WebviewLoginScreen> {
         NavigationDelegate(
           onPageStarted: (String url) {
             setState(() {
-              _isLoading = true;
               _status = 'Loading...';
-            });
-          },
-          onPageFinished: (String url) {
-            setState(() {
-              _isLoading = false;
             });
           },
           onWebResourceError: (WebResourceError error) {
@@ -56,14 +49,7 @@ class _WebviewLoginScreenState extends State<WebviewLoginScreen> {
           onNavigationRequest: (NavigationRequest request) {
             // 拦截重定向URL，提取ticket
             if (request.url.contains('ticket=')) {
-              _handleTicketRedirect(request.url);
-              return NavigationDecision.prevent;
-            }
-            
-            // 拦截learn.tsinghua.edu.cn的登录成功页面
-            if (request.url.contains('learn.tsinghua.edu.cn') && 
-                request.url.contains('course/student')) {
-              _handleLearnLoginSuccess();
+              _completeAuthentication(request.url);
               return NavigationDecision.prevent;
             }
             
@@ -76,92 +62,35 @@ class _WebviewLoginScreenState extends State<WebviewLoginScreen> {
       );
   }
 
-  void _handleTicketRedirect(String url) {
-    setState(() {
-      _status = 'Processing ticket...';
-    });
 
-    // 解析URL中的ticket参数
-    final uri = Uri.parse(url);
-    final ticket = uri.queryParameters['ticket'];
-    
-    if (ticket != null) {
-      _completeAuthentication(ticket);
-    } else {
-      setState(() {
-        _status = 'Failed to extract ticket from URL';
-      });
-    }
-  }
-
-  void _handleLearnLoginSuccess() {
-    setState(() {
-      _status = 'Login successful, extracting CSRF token...';
-    });
-    
-    // 从webview的cookies中提取CSRF token
-    _extractCsrfToken();
-  }
-
-  Future<void> _completeAuthentication(String ticket) async {
+  Future<void> _completeAuthentication(String url) async {
     setState(() {
       _status = 'Completing authentication...';
     });
-
     try {
-      final apiService = LearnApiService();
-      final csrfToken = await apiService.completeSsoLogin(ticket);
-      
+      final csrfToken = await widget.apiService.completeSsoLogin(url);
       if (csrfToken != null) {
         widget.onLoginSuccess(csrfToken);
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       } else {
-        setState(() {
-          _status = 'Failed to complete authentication';
-        });
+        if (mounted) {
+          setState(() {
+            _status = 'Failed to complete authentication';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _status = 'Error: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _status = 'Error: $e';
+        });
+      }
     }
   }
 
-  Future<void> _extractCsrfToken() async {
-    try {
-      // 获取webview的cookies
-      final cookies = await _controller.runJavaScriptReturningResult(
-        'document.cookie'
-      ) as String;
-      
-      // 解析XSRF-TOKEN
-      final csrfToken = _extractCsrfFromCookies(cookies);
-      
-      if (csrfToken != null) {
-        widget.onLoginSuccess(csrfToken);
-        Navigator.of(context).pop();
-      } else {
-        setState(() {
-          _status = 'Failed to extract CSRF token from cookies';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _status = 'Error extracting CSRF token: $e';
-      });
-    }
-  }
 
-  String? _extractCsrfFromCookies(String cookies) {
-    final cookiePairs = cookies.split(';');
-    for (final pair in cookiePairs) {
-      final trimmed = pair.trim();
-      if (trimmed.startsWith('XSRF-TOKEN=')) {
-        return trimmed.substring('XSRF-TOKEN='.length);
-      }
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,62 +1,127 @@
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart';
 
 class LearnApiService {
-  final String _baseUrl = 'learn.tsinghua.edu.cn';
-  final http.Client _client = http.Client();
+  final String _baseUrl = 'https://learn.tsinghua.edu.cn';
+  late final Dio _dio;
 
-  Future<bool> testApi(String csrfToken) async {
-    final uri = Uri.https(_baseUrl, '/b/wlxt/kc/v_wlkc_xs_xktjb_coassb/queryxnxq', {
-      '_csrf': csrfToken,
-    });
+  LearnApiService() {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      // 禁用自动重定向，手动处理
+      followRedirects: false,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+      },
+    ));
+    
+    _dio.interceptors.add(CookieManager(CookieJar()));
+  }
 
-    final headers = {
-      'Cookie': 'XSRF-TOKEN=$csrfToken',
-    };
-
-    try {
-      final response = await _client.get(uri, headers: headers);
-      return response.statusCode == 200;
-    } catch (e) {
-      // You might want to log the error for debugging purposes
-      // print(e);
-      return false;
+  // 打印所有cookie
+  Future<void> printAllCookies() async {
+    print('当前所有cookie:');
+    final cookieJar = _dio.interceptors.whereType<CookieManager>().firstOrNull?.cookieJar;
+    if (cookieJar != null) {
+      try {
+        // 获取指定域名的所有cookie
+        final cookies = await cookieJar.loadForRequest(Uri.parse('https://learn.tsinghua.edu.cn'));
+        
+        if (cookies.isEmpty) {
+          print('没有找到任何cookie');
+        } else {
+          print('找到 ${cookies.length} 个cookie:');
+          for (int i = 0; i < cookies.length; i++) {
+            final cookie = cookies[i];
+            print('  ${i + 1}. ${cookie.name} = ${cookie.value}');
+            print('     域名: ${cookie.domain}');
+            print('     路径: ${cookie.path}');
+            print('     过期时间: ${cookie.expires}');
+            print('     安全: ${cookie.secure}');
+            print('     HttpOnly: ${cookie.httpOnly}');
+            print('');
+          }
+        }
+        
+      } catch (e) {
+        print('获取cookie时出错: $e');
+      }
+    } else {
+      print('CookieJar 未找到');
     }
   }
 
-  Future<String?> completeSsoLogin(String ticket) async {
-    try {
-      // 第一步：使用ticket完成认证
-      final authUri = Uri.https(_baseUrl, '/b/j_spring_security_thauth_roaming_entry', {
-        'ticket': ticket,
-      });
-      
-      final authResponse = await _client.get(authUri);
-      
-      if (authResponse.statusCode != 200) {
-        return null;
-      }
-
-      // 第二步：访问课程页面完成登录
-      final courseUri = Uri.https(_baseUrl, '/f/wlxt/index/course/student/');
-      final courseResponse = await _client.get(courseUri);
-      
-      if (courseResponse.statusCode != 200) {
-        return null;
-      }
-
-      // 第三步：从响应头中提取CSRF token
-      final setCookieHeader = courseResponse.headers['set-cookie'];
-      if (setCookieHeader != null) {
-        final csrfToken = _extractCsrfFromSetCookie(setCookieHeader);
-        if (csrfToken != null) {
-          return csrfToken;
+  Future<String?> getCsrfToken() async {
+    // csrf token 在 cookie 中, XSRF-TOKEN
+    final cookieJar = _dio.interceptors.whereType<CookieManager>().firstOrNull?.cookieJar;
+    if (cookieJar != null) {
+      final cookies = await cookieJar.loadForRequest(Uri.parse('https://learn.tsinghua.edu.cn'));
+      for (final cookie in cookies) {
+        if (cookie.name == 'XSRF-TOKEN') {
+          return cookie.value;
         }
       }
+    }
+    print('Failed to extract CSRF token from cookies');
+    return null;
+  }
 
-      // 如果从响应头中没找到，尝试从响应体中解析
-      final body = courseResponse.body;
-      final csrfToken = _extractCsrfFromBody(body);
+  Future<String?> completeSsoLogin(String url) async {
+    try {
+      // 第一步：访问 SSO 返回的 URL，手动处理重定向
+      Response? currentResponse;
+      String currentUrl = url;
+      int redirectCount = 0;
+      const maxRedirects = 5;
       
+      while (redirectCount < maxRedirects) {
+        try {
+          currentResponse = await _dio.get(
+            currentUrl,
+            options: Options(
+              validateStatus: (status) {
+                return status != null && (status >= 200 && status < 400);
+              },
+            ),
+          );
+          
+          // 如果是200，说明重定向完成
+          if (currentResponse.statusCode == 200) {
+            break;
+          }
+          // 如果是302重定向，获取Location头
+          if (currentResponse.statusCode == 302) {
+            final locationHeader = currentResponse.headers['location'];
+            if (locationHeader != null && locationHeader.isNotEmpty) {
+              currentUrl = locationHeader.first;
+              redirectCount++;
+              continue;
+            }
+          }
+          break;
+        } catch (e) {
+          return null;
+        }
+      }
+      
+      if (currentResponse == null || currentResponse.statusCode != 200) {
+        return null;
+      }
+      
+      final csrfToken = await getCsrfToken();
+      print(await getSemesters(csrfToken!));
       return csrfToken;
     } catch (e) {
       print('Error completing SSO login: $e');
@@ -64,39 +129,90 @@ class LearnApiService {
     }
   }
 
-  String? _extractCsrfFromSetCookie(String setCookieHeader) {
-    final cookies = setCookieHeader.split(',');
-    for (final cookie in cookies) {
-      final trimmed = cookie.trim();
-      if (trimmed.startsWith('XSRF-TOKEN=')) {
-        final tokenPart = trimmed.substring('XSRF-TOKEN='.length);
-        // 移除可能的路径和过期时间等参数
-        final token = tokenPart.split(';')[0];
-        return token;
+
+  // 获取学期列表
+  Future<List<String>> getSemesters(String csrfToken) async {
+    try {
+      final response = await _dio.get('/b/wlxt/kc/v_wlkc_xs_xktjb_coassb/queryxnxq',
+        queryParameters: {'_csrf': csrfToken}
+      );      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.cast<String>();
       }
+      return [];
+    } catch (e) {
+      print('Error getting semesters: $e');
+      return [];
     }
-    return null;
   }
 
-  String? _extractCsrfFromBody(String body) {
-    // 尝试从HTML中提取CSRF token
-    final csrfPattern = RegExp(r'name="_csrf"\s+value="([^"]+)"');
-    final match = csrfPattern.firstMatch(body);
-    if (match != null) {
-      return match.group(1);
+  // 获取课程列表
+  Future<List<Map<String, dynamic>>> getCourses(String csrfToken, String semesterId, {String language = 'zh'}) async {
+    try {
+      final response = await _dio.get('/b/wlxt/kc/v_wlkc_xs_xkb_kcb_extend/student/loadCourseBySemesterId/$semesterId/$language',
+        queryParameters: {'_csrf': csrfToken}
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = response.data;
+        final List<dynamic> resultList = data['resultList'] ?? [];
+        return resultList.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Error getting courses: $e');
+      return [];
     }
-    
-    // 尝试从meta标签中提取
-    final metaPattern = RegExp(r'<meta\s+name="csrf-token"\s+content="([^"]+)"');
-    final metaMatch = metaPattern.firstMatch(body);
-    if (metaMatch != null) {
-      return metaMatch.group(1);
+  }
+
+  // 获取文档分类
+  Future<List<Map<String, dynamic>>> getDocumentCategories(String csrfToken, String courseId) async {
+    try {
+      final response = await _dio.get('/b/wlxt/kj/wlkc_kjflb/student/pageList',
+        queryParameters: {
+          'wlkcid': courseId,
+          '_csrf': csrfToken,
+        }
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = response.data;
+        final Map<String, dynamic> object = data['object'] ?? {};
+        final List<dynamic> rows = object['rows'] ?? [];
+        return rows.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Error getting document categories: $e');
+      return [];
     }
-    
-    return null;
+  }
+
+  // 获取文档列表
+  Future<List<Map<String, dynamic>>> getDocuments(String csrfToken, String courseId, {int size = 200}) async {
+    try {
+      final response = await _dio.get('/b/wlxt/kj/wlkc_kjxxb/student/kjxxbByWlkcidAndSizeForStudent',
+        queryParameters: {
+          'wlkcid': courseId,
+          'size': size.toString(),
+          '_csrf': csrfToken,
+        }
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = response.data;
+        final List<dynamic> object = data['object'] ?? [];
+        return object.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Error getting documents: $e');
+      return [];
+    }
   }
 
   void dispose() {
-    _client.close();
+    _dio.close();
   }
 } 
